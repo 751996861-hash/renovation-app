@@ -1,0 +1,3051 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>装修记账</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+  background: #0e1115;
+  color: #0e1115;
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+/* ============================================================
+   CSS VARIABLES
+   ============================================================ */
+:root {
+  --primary: #1664ff;
+  --bg: #ffffff;
+  --fg: #0e1115;
+  --card: rgba(255,255,255,0.7);
+  --card-solid: #ffffff;
+  --muted: #7f8d9f;
+  --border: rgba(0,0,0,0.06);
+  --border-light: rgba(255,255,255,0.5);
+  --radius: 20px;
+  --radius-sm: 14px;
+  --radius-xs: 12px;
+  --padding: 20px;
+  --gap: 20px;
+  --success: #34D399;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --text-secondary: #333942;
+  --text-on-dark: #F8FAFC;
+  --text-on-dark-muted: #94A3B8;
+  --frosted-blur: blur(20px);
+}
+
+/* ============================================================
+   APP SHELL — Gradient Background
+   ============================================================ */
+#app {
+  width: 390px;
+  min-height: 100vh;
+  position: relative;
+  background: linear-gradient(180deg,
+    #0B1120 0%,
+    #0F172A 3%,
+    #141E3A 6%,
+    #1A284E 9%,
+    #213464 12%,
+    #29407C 15%,
+    #325094 18%,
+    #3C64D7 21%,
+    #4E78DB 25%,
+    #638CDF 29%,
+    #7CA1E4 33%,
+    #96B5EC 37%,
+    #ADC6F1 41%,
+    #C3D5F5 45%,
+    #D6E2F9 49%,
+    #E5ECFB 53%,
+    #EFF3FC 58%,
+    #F5F7FD 64%,
+    #F9FAFE 72%,
+    #FCFCFE 82%,
+    #FFFFFF 100%
+  );
+  overflow-x: hidden;
+  padding-bottom: 90px;
+}
+
+/* ============================================================
+   FROSTED CARD BASE — Zero shadow, 1px border
+   ============================================================ */
+.card {
+  background: var(--card);
+  backdrop-filter: var(--frosted-blur);
+  -webkit-backdrop-filter: var(--frosted-blur);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.app-header {
+  padding: 56px 20px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.header-left { flex: 1; }
+.header-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-on-dark);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.header-date {
+  font-size: 14px;
+  color: var(--text-on-dark-muted);
+  font-weight: 500;
+  margin-top: 6px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.header-email {
+  font-size: 11px;
+  color: var(--text-on-dark-muted);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btn-logout {
+  padding: 4px 12px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: var(--text-on-dark);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-logout:active { background: rgba(255,255,255,0.25); }
+
+/* ============================================================
+   LOGIN PAGE
+   ============================================================ */
+#loginPage {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#loginPage .login-bg {
+  width: 390px;
+  min-height: 100vh;
+  background: linear-gradient(180deg,
+    #0B1120 0%,
+    #0F172A 10%,
+    #1A284E 25%,
+    #3C64D7 50%,
+    #638CDF 65%,
+    #96B5EC 80%,
+    #C3D5F5 90%,
+    #FFFFFF 100%
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 28px;
+}
+.login-logo {
+  margin-top: 120px;
+  margin-bottom: 12px;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-logo svg { width: 36px; height: 36px; }
+.login-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-on-dark);
+  margin-bottom: 6px;
+}
+.login-subtitle {
+  font-size: 14px;
+  color: var(--text-on-dark-muted);
+  margin-bottom: 40px;
+}
+.login-card {
+  width: 100%;
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: var(--frosted-blur);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  box-shadow: none;
+}
+.login-form-group {
+  margin-bottom: 16px;
+}
+.login-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #7f8d9f;
+  margin-bottom: 8px;
+  display: block;
+}
+.login-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: #F5F6F8;
+  border: 1.5px solid #E7EAEF;
+  border-radius: var(--radius-xs);
+  font-family: inherit;
+  font-size: 15px;
+  color: #0e1115;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.login-input:focus { border-color: var(--primary); }
+.login-input::placeholder { color: #B0B8C4; }
+.login-btn-primary {
+  width: 100%;
+  padding: 16px;
+  background: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: 8px;
+}
+.login-btn-primary:active { opacity: 0.85; }
+.login-btn-outline {
+  width: 100%;
+  padding: 16px;
+  background: transparent;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 10px;
+}
+.login-btn-outline:active { background: rgba(22,100,255,0.05); }
+.login-error {
+  color: #DC2626;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 12px;
+  text-align: center;
+  min-height: 20px;
+}
+.login-toggle {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.login-toggle a {
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* ============================================================
+   LOADING SPINNER
+   ============================================================ */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #0B1120 0%, #3C64D7 40%, #FFFFFF 100%);
+}
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   TAB BAR — White frosted glass
+   ============================================================ */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 390px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.3) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding: 8px 0 28px;
+  z-index: 100;
+}
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 6px 12px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  transition: color 0.2s;
+  font-family: inherit;
+}
+.tab-item.active { color: var(--fg); font-weight: 600; }
+.tab-item svg { width: 24px; height: 24px; transition: transform 0.2s; }
+.tab-item.active svg { transform: scale(1.08); }
+.tab-item:active svg { transform: scale(0.92); }
+
+/* ============================================================
+   TAB PANELS — Fade animation 200ms
+   ============================================================ */
+.tab-panel {
+  display: none;
+  padding: 0 var(--padding);
+  animation: fadeIn 0.2s ease;
+}
+.tab-panel.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card-animate { animation: fadeUp 0.35s ease both; }
+.card-animate:nth-child(2) { animation-delay: 0.05s; }
+.card-animate:nth-child(3) { animation-delay: 0.1s; }
+.card-animate:nth-child(4) { animation-delay: 0.15s; }
+.card-animate:nth-child(5) { animation-delay: 0.2s; }
+.card-animate:nth-child(6) { animation-delay: 0.25s; }
+.card-animate:nth-child(7) { animation-delay: 0.3s; }
+
+/* ============================================================
+   SECTION
+   ============================================================ */
+.section { margin-bottom: var(--gap); }
+
+/* ============================================================
+   HERO CARD — White-to-transparent gradient overlay
+   ============================================================ */
+.hero-card {
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.88) 0%,
+    rgba(255,255,255,0.7) 40%,
+    rgba(255,255,255,0.5) 100%
+  ) !important;
+  padding: 24px;
+}
+.hero-card .card-label {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.hero-card .card-amount {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--fg);
+  letter-spacing: -1px;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.hero-card .card-subtitle {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ============================================================
+   MINI STATS — Clickable rows for 硬装 / 软装
+   ============================================================ */
+.mini-stats {
+  display: flex;
+  gap: 0;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+.mini-stat {
+  flex: 1;
+  cursor: pointer;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mini-stat:first-child { border-right: 1px solid rgba(0,0,0,0.05); }
+.mini-stat:active { background: rgba(0,0,0,0.02); }
+.mini-stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.mini-stat-value { font-size: 16px; font-weight: 700; color: var(--fg); }
+.mini-stat-chevron { color: var(--muted); font-size: 16px; }
+.mini-stat-left { flex: 1; }
+
+/* ============================================================
+   PROGRESS BAR — Green fill, 800ms animation
+   ============================================================ */
+.hero-progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+.hero-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #10B981, #34D399);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0;
+}
+.hero-progress-fill.animated { width: var(--progress); }
+.hero-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.hero-progress-percent { font-weight: 600; color: #10B981; }
+.hero-progress-label { color: var(--muted); }
+
+/* ============================================================
+   TAGS
+   ============================================================ */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tag-success { background: rgba(52,211,153,0.1); color: #059669; }
+.tag-warning { background: rgba(251,191,36,0.1); color: #D97706; }
+.tag-danger { background: rgba(248,113,113,0.08); color: #DC2626; }
+.tag-gray { background: rgba(0,0,0,0.03); color: var(--muted); }
+.tag-blue { background: rgba(22,100,255,0.08); color: #1664ff; }
+.tag-orange { background: rgba(251,146,60,0.08); color: #C2410C; }
+.tag-purple { background: rgba(167,139,250,0.08); color: #7C3AED; }
+.tag-green { background: rgba(52,211,153,0.1); color: #34D399; }
+.tag-urgent { background: rgba(248,113,113,0.08); color: #DC2626; }
+.tag-important { background: rgba(251,146,60,0.08); color: #C2410C; }
+.tag-normal { background: rgba(0,0,0,0.03); color: var(--muted); }
+
+/* ============================================================
+   LABEL
+   ============================================================ */
+.light-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ============================================================
+   TRANSACTION LIST — Single frosted card, no individual wrappers
+   ============================================================ */
+.tx-card {
+  padding: 4px 16px;
+}
+.transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  cursor: pointer;
+}
+.transaction-item:last-child { border-bottom: none; }
+.tx-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tx-icon.teal { background: rgba(52,211,153,0.1); }
+.tx-icon.blue { background: rgba(22,100,255,0.08); }
+.tx-icon.amber { background: rgba(251,191,36,0.1); }
+.tx-icon.rose { background: rgba(248,113,113,0.08); }
+.tx-icon.purple { background: rgba(167,139,250,0.08); }
+.tx-info { flex: 1; min-width: 0; }
+.tx-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tx-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.tx-date { font-size: 12px; color: var(--muted); }
+.tx-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg);
+  flex-shrink: 0;
+  text-align: right;
+}
+.source-pill {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  background: rgba(0,0,0,0.03);
+  font-weight: 500;
+}
+
+/* ============================================================
+   REMINDER CARDS — Individual frosted cards with left border
+   ============================================================ */
+.reminder-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.reminder-card-item {
+  padding: 14px 16px 14px 19px;
+  cursor: pointer;
+  transition: transform 0.15s;
+  border-left: 3px solid transparent;
+  position: relative;
+}
+.reminder-card-item:active { transform: scale(0.98); }
+.reminder-card-item.priority-urgent { border-left-color: var(--danger); }
+.reminder-card-item.priority-important { border-left-color: var(--warning); }
+.reminder-card-item.priority-normal { border-left-color: var(--success); }
+.reminder-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.reminder-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.reminder-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.reminder-card-date {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ============================================================
+   FAB BUTTON — White bg, blue #1664ff border, blue text
+   ============================================================ */
+.fab {
+  position: fixed;
+  bottom: 100px;
+  right: calc(50% - 195px + 20px);
+  background: #ffffff;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  border-radius: 28px;
+  padding: 12px 24px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(22,100,255,0.25);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.15s;
+}
+.fab:active { transform: scale(0.96); }
+.fab.hidden { display: none; }
+
+/* ============================================================
+   SEGMENT TOGGLE
+   ============================================================ */
+.segment-toggle {
+  display: flex;
+  background: #F0F1F3;
+  border-radius: var(--radius-xs);
+  padding: 3px;
+  margin: -8px auto 16px;
+  width: 350px;
+}
+.segment-btn {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4A5063;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.55;
+}
+.segment-btn.active {
+  background: #FFFFFF;
+  color: #0e1115;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  opacity: 1;
+}
+
+/* ============================================================
+   SUMMARY SINGLE COLUMN — Expandable list
+   ============================================================ */
+.summary-single-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+.summary-category {
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.15s;
+  background: rgba(255,255,255,0.77);
+}
+.summary-category:active { transform: scale(0.98); }
+.summary-cat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.summary-cat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.summary-cat-icon.teal { background: rgba(52,211,153,0.12); }
+.summary-cat-icon.blue { background: rgba(22,100,255,0.08); }
+.summary-cat-icon.amber { background: rgba(251,191,36,0.12); }
+.summary-cat-icon.rose { background: rgba(248,113,113,0.1); }
+.summary-cat-icon.purple { background: rgba(167,139,250,0.1); }
+.summary-cat-info { flex: 1; min-width: 0; }
+.summary-cat-name { font-size: 15px; font-weight: 700; color: var(--fg); }
+.summary-cat-count { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.summary-cat-right {
+  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.summary-cat-amount { font-size: 16px; font-weight: 700; color: var(--fg); }
+.summary-cat-arrow {
+  font-size: 18px;
+  color: var(--muted);
+  font-weight: 300;
+  transition: transform 0.2s ease;
+}
+.summary-cat-arrow.expanded { transform: rotate(90deg); }
+.summary-subitems {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-top 0.3s ease, opacity 0.25s ease;
+  margin-top: 0;
+  opacity: 0;
+}
+.summary-subitems.open { max-height: 500px; margin-top: 12px; opacity: 1; }
+.summary-subitem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 10px 52px;
+  border-top: 1px solid rgba(0,0,0,0.04);
+}
+.summary-subitem:first-child { border-top: none; padding-top: 0; }
+.summary-subitem-name { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+.summary-subitem-amount { font-size: 13px; font-weight: 600; color: var(--fg); }
+
+/* ============================================================
+   FLOW VIEW — Grouped by date
+   ============================================================ */
+.flow-group-card {
+  padding: 4px 16px;
+  margin-bottom: var(--gap);
+  background: rgba(255,255,255,0.88);
+}
+.group-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding-left: 2px;
+}
+
+/* ============================================================
+   SUB-PAGES — Slide in from right 250ms
+   ============================================================ */
+.sub-page {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: linear-gradient(180deg, #FAFBFD 0%, #FFFFFF 30%);
+  width: 390px;
+  left: 50%;
+  transform: translateX(-50%);
+  overflow-y: auto;
+  padding-bottom: 40px;
+}
+.sub-page.active {
+  display: block;
+  animation: slideRight 0.25s ease;
+}
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(calc(-50% + 20px)); }
+  to { opacity: 1; transform: translateX(-50%); }
+}
+.sub-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: var(--frosted-blur);
+  -webkit-backdrop-filter: var(--frosted-blur);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.sub-back {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--fg);
+  transition: background 0.15s;
+}
+.sub-back:active { background: rgba(0,0,0,0.06); }
+.sub-title { font-size: 17px; font-weight: 700; color: var(--fg); }
+.sub-content { padding: var(--padding); }
+
+/* ============================================================
+   CATEGORY DETAIL — Filtered transactions, sticky budget bar
+   ============================================================ */
+.cat-detail-header {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--fg);
+  margin-bottom: 4px;
+}
+.cat-detail-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.cat-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.cat-detail-row:last-child { border-bottom: none; }
+.cat-detail-name { font-size: 15px; font-weight: 600; color: var(--fg); }
+.cat-detail-amount { font-size: 15px; font-weight: 700; color: var(--fg); }
+.cat-detail-budget-bar {
+  position: sticky;
+  bottom: 0;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: var(--frosted-blur);
+  -webkit-backdrop-filter: var(--frosted-blur);
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+.cat-detail-budget-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.dark-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.dark-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #10B981, #34D399);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0;
+}
+.dark-progress-fill.animated { width: var(--progress); }
+
+/* ============================================================
+   REMINDER DETAIL
+   ============================================================ */
+.reminder-detail-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--fg);
+  margin-bottom: 16px;
+  line-height: 1.3;
+}
+.reminder-detail-desc {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+.reminder-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+.reminder-detail-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.reminder-detail-icon.teal { background: rgba(52,211,153,0.1); }
+.reminder-detail-icon.amber { background: rgba(251,191,36,0.1); }
+.reminder-detail-icon.gray { background: rgba(0,0,0,0.03); }
+.reminder-detail-icon.blue { background: rgba(22,100,255,0.06); }
+.reminder-detail-icon.red { background: rgba(248,113,113,0.08); }
+.reminder-detail-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.btn-teal {
+  flex: 1;
+  padding: 14px;
+  background: var(--success);
+  color: #0e1115;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-teal:active { opacity: 0.85; }
+.btn-red-outline {
+  flex: 1;
+  padding: 14px;
+  background: transparent;
+  color: var(--danger);
+  border: 1.5px solid var(--danger);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-red-outline:active { background: rgba(248,113,113,0.06); }
+
+/* ============================================================
+   REMINDER HISTORY — Strikethrough completed items
+   ============================================================ */
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.history-item:last-child { border-bottom: none; }
+.history-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: line-through;
+  flex: 1;
+}
+.history-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.history-tag { margin-left: auto; }
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ============================================================
+   CONTRACT TAB
+   ============================================================ */
+.contract-total { font-size: 14px; color: var(--muted); }
+.contract-amount {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--fg);
+  letter-spacing: -0.5px;
+  margin: 8px 0 16px;
+}
+.contract-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 16px 0; }
+.contract-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.contract-row-label { font-size: 14px; color: var(--muted); }
+.contract-row-value { font-size: 16px; font-weight: 700; color: var(--fg); }
+.contract-alert {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #FFFBEB;
+  border-radius: var(--radius-xs);
+  font-size: 14px;
+  font-weight: 600;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============================================================
+   TIMELINE — Colored dots
+   ============================================================ */
+.timeline { position: relative; padding-left: 24px; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 1px;
+}
+.timeline-node { position: relative; padding: 0 0 20px 16px; }
+.timeline-node:last-child { padding-bottom: 0; }
+.timeline-dot {
+  position: absolute;
+  left: -24px;
+  top: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid #FAFBFD;
+}
+.timeline-dot.orange { background: var(--warning); }
+.timeline-dot.purple { background: #A78BFA; }
+.timeline-dot.blue { background: var(--primary); }
+.timeline-card { padding: 14px; }
+.timeline-amount { font-size: 17px; font-weight: 700; color: var(--fg); }
+.timeline-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.timeline-date { font-size: 12px; color: var(--muted); }
+.timeline-note { font-size: 13px; color: var(--text-secondary); margin-top: 8px; line-height: 1.5; }
+
+/* ============================================================
+   CYCLE CARDS — Horizontal scroll
+   ============================================================ */
+.cycle-scroll {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 0 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.cycle-scroll::-webkit-scrollbar { display: none; }
+.cycle-card {
+  min-width: 220px;
+  padding: var(--padding);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.cycle-card:active { transform: scale(0.97); }
+.cycle-name { font-size: 16px; font-weight: 700; color: var(--fg); margin-bottom: 10px; }
+.cycle-budget {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cycle-amount { font-weight: 600; }
+.cycle-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 14px;
+}
+.cycle-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #10B981, #34D399);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0;
+}
+.cycle-progress-fill.animated { width: var(--progress); }
+.cycle-tag-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding-left: 2px;
+}
+
+/* ============================================================
+   TAGS ON WHITE
+   ============================================================ */
+.tag-wc {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tag-wc-blue { background: #DBEAFE; color: #2563EB; }
+.tag-wc-green { background: #ECFDF5; color: #059669; }
+.tag-wc-gray { background: #F3F4F6; color: #6B7280; }
+.tag-wc-orange { background: #FEF3C7; color: #D97706; }
+
+/* ============================================================
+   PROFILE TAB
+   ============================================================ */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 0 20px;
+}
+.avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1664ff, #A78BFA);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #FFF;
+  font-weight: 700;
+}
+.profile-name { font-size: 20px; font-weight: 700; color: var(--fg); }
+.profile-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.menu-list {
+  overflow: hidden;
+  margin-bottom: var(--gap);
+  padding: 0;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px var(--padding);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+  transition: background 0.15s;
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-item:active { background: rgba(0,0,0,0.02); }
+.menu-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.menu-icon.teal { background: rgba(52,211,153,0.1); }
+.menu-icon.amber { background: rgba(251,191,36,0.1); }
+.menu-icon.purple { background: rgba(167,139,250,0.08); }
+.menu-icon.blue { background: rgba(22,100,255,0.06); }
+.menu-label { flex: 1; font-size: 15px; font-weight: 600; color: var(--fg); }
+.menu-chevron { color: var(--muted); font-size: 14px; }
+
+/* ============================================================
+   BUDGET SETTINGS — 3-level hierarchy, orange warning
+   ============================================================ */
+.budget-group { margin-bottom: 20px; }
+.budget-group-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 12px;
+  padding-left: 4px;
+}
+.budget-item { padding-left: 20px; margin-bottom: 12px; }
+.budget-item-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.budget-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(0,0,0,0.02);
+  border: 1.5px solid rgba(0,0,0,0.08);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.budget-input:focus { border-color: var(--primary); }
+.budget-warning {
+  font-size: 12px;
+  color: #D97706;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.budget-input.over-budget { border-color: #D97706; }
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  background: var(--fg);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: 8px;
+}
+.btn-primary:active { opacity: 0.85; }
+
+/* ============================================================
+   BOTTOM SHEET — Dark theme #111827
+   ============================================================ */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.sheet-overlay.active { opacity: 1; pointer-events: auto; }
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 390px;
+  background: #FFFFFF;
+  border-radius: 24px 24px 0 0;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  z-index: 201;
+  padding: 12px 20px 32px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.bottom-sheet.active { transform: translateX(-50%) translateY(0); }
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.sheet-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0e1115;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* ============================================================
+   FORM ELEMENTS — White inputs
+   ============================================================ */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #7f8d9f;
+  margin-bottom: 8px;
+  display: block;
+}
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: #F5F6F8;
+  border: 1.5px solid #E7EAEF;
+  border-radius: var(--radius-xs);
+  font-family: inherit;
+  font-size: 15px;
+  color: #0e1115;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus { border-color: var(--primary); }
+.form-input::placeholder { color: #B0B8C4; }
+.form-toggle {
+  display: flex;
+  background: #F0F1F3;
+  border-radius: 10px;
+  padding: 3px;
+  border: 1px solid #E7EAEF;
+  flex-wrap: wrap;
+}
+.form-toggle-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #7f8d9f;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 0;
+}
+.form-toggle-btn.active { background: var(--primary); color: #FFFFFF; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+.btn-sheet-primary {
+  width: 100%;
+  padding: 16px;
+  background: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: 8px;
+}
+.btn-sheet-primary:active { opacity: 0.85; }
+.form-hint { font-size: 12px; color: #B0B8C4; margin-top: 6px; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+#toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: rgba(14,17,21,0.85);
+  color: #FFFFFF;
+  padding: 12px 24px;
+  border-radius: var(--radius-xs);
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  font-family: inherit;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ============================================================
+   DELETE CONFIRM
+   ============================================================ */
+.delete-confirm {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 4px 0;
+  background: rgba(248,113,113,0.06);
+  border-radius: var(--radius-xs);
+  animation: fadeUp 0.2s ease;
+}
+.delete-confirm.show { display: flex; }
+.delete-confirm-text { font-size: 13px; color: var(--danger); flex: 1; font-weight: 500; }
+.delete-confirm-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.delete-confirm-yes { background: var(--danger); color: #FFF; }
+.delete-confirm-no { background: rgba(0,0,0,0.04); color: var(--muted); }
+
+/* ============================================================
+   HISTORY BTN
+   ============================================================ */
+.history-btn {
+  background: none;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.history-btn:active { background: rgba(0,0,0,0.03); }
+
+/* ============================================================
+   BUDGET TAG
+   ============================================================ */
+.tag-white-success {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #ECFDF5;
+  color: #059669;
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 0; height: 0; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     LOADING OVERLAY
+     ============================================================ -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- ============================================================
+     LOGIN PAGE
+     ============================================================ -->
+<div id="loginPage">
+  <div class="login-bg">
+    <div class="login-logo">
+      <svg width="36" height="36" fill="none" stroke="#F8FAFC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1z"/>
+        <path d="M9 21V14h6v7"/>
+      </svg>
+    </div>
+    <div class="login-title">装修记账</div>
+    <div class="login-subtitle">轻松管理您的装修开支</div>
+    <div class="login-card">
+      <div id="loginModeLabel" style="font-size:17px; font-weight:700; color:#0e1115; margin-bottom:20px; text-align:center;">登录</div>
+      <div class="login-form-group">
+        <label class="login-label">邮箱</label>
+        <input type="email" class="login-input" id="loginEmail" placeholder="请输入邮箱地址">
+      </div>
+      <div class="login-form-group">
+        <label class="login-label">密码</label>
+        <input type="password" class="login-input" id="loginPassword" placeholder="请输入密码">
+      </div>
+      <button class="login-btn-primary" id="loginBtn" onclick="handleLogin()">登录</button>
+      <button class="login-btn-outline" id="registerBtn" onclick="handleRegister()" style="display:none;">注册</button>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-toggle" id="loginToggle">
+        还没有账号？<a onclick="toggleLoginMode()">去注册</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <!-- ============================================================
+       HEADER
+       ============================================================ -->
+  <header class="app-header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="header-title">装修记账</div>
+        <div class="header-date" id="headerDate"></div>
+      </div>
+      <div class="header-right">
+        <span class="header-email" id="headerEmail"></span>
+        <button class="btn-logout" onclick="handleLogout()">退出</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       TAB 1: HOME — 首页
+       ============================================================ -->
+  <div id="tab-home" class="tab-panel active">
+    <!-- Hero Card -->
+    <div class="section" style="margin-top: 12px;">
+      <div class="hero-card card card-animate">
+        <div class="card-label">
+          <span>装修概览</span>
+        </div>
+        <div class="card-amount" id="heroTotalAmount">¥0</div>
+        <div class="card-subtitle" id="heroBudgetSubtitle">累计总预算 ¥0.00</div>
+        <div class="mini-stats">
+          <div class="mini-stat" onclick="openCategoryDetail('硬装')">
+            <div class="mini-stat-left">
+              <div class="mini-stat-label">硬装</div>
+              <div class="mini-stat-value" id="heroHardAmount">¥0</div>
+            </div>
+            <div class="mini-stat-right">
+              <span class="mini-stat-chevron">›</span>
+            </div>
+          </div>
+          <div class="mini-stat" onclick="openCategoryDetail('软装')">
+            <div class="mini-stat-left">
+              <div class="mini-stat-label">软装</div>
+              <div class="mini-stat-value" id="heroSoftAmount">¥0</div>
+            </div>
+            <div class="mini-stat-right">
+              <span class="mini-stat-chevron">›</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-progress-track">
+          <div class="hero-progress-fill" id="heroProgressFill" style="--progress: 0%"></div>
+        </div>
+        <div class="hero-progress-info">
+          <span class="hero-progress-label">预算使用</span>
+          <span class="hero-progress-percent" id="heroProgressPercent">0%</span>
+        </div>
+        <div style="margin-top: 12px;" id="heroBudgetTag">
+          <span class="tag-white-success">&#10003; 预算充足</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reminders -->
+    <div class="section" style="margin-top: 8px;">
+      <div class="light-label" style="padding: 0 0 10px;">
+        <span>待办提醒</span>
+        <button class="history-btn" onclick="openReminderHistory()">历史</button>
+      </div>
+      <div class="reminder-card-list" id="reminderList">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="section">
+      <div class="light-label" style="padding: 0 0 10px;">最近交易</div>
+      <div class="card tx-card card-animate" id="recentTxCard">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- FAB: 记一笔 -->
+    <button class="fab" id="fabHome" onclick="openSheet()">
+      记一笔
+    </button>
+  </div>
+
+  <!-- ============================================================
+       TAB 2: ACCOUNTING — 记账
+       ============================================================ -->
+  <div id="tab-accounting" class="tab-panel">
+    <div style="margin-top: 8px;">
+      <div class="segment-toggle">
+        <button class="segment-btn active" onclick="toggleSegment(this, 'summary')">汇总</button>
+        <button class="segment-btn" onclick="toggleSegment(this, 'flow')">流水</button>
+      </div>
+    </div>
+
+    <!-- Summary View — Single column expandable -->
+    <div id="view-summary">
+      <div class="summary-single-column card-animate" id="summaryList">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Flow View — Grouped by date -->
+    <div id="view-flow" style="display: none;">
+      <div id="flowList">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <button class="fab" id="fabAccounting" onclick="openSheet()">
+      记一笔
+    </button>
+  </div>
+
+  <!-- ============================================================
+       TAB 3: CONTRACT — 合同
+       ============================================================ -->
+  <div id="tab-contract" class="tab-panel">
+    <div class="section" style="margin-top: 12px;">
+      <div class="hero-card card card-animate">
+        <div class="card-label">合同总览</div>
+        <div class="contract-total">已转账总额</div>
+        <div class="contract-amount" id="contractTotalPaid">¥0.00</div>
+        <div id="contractRows">
+          <!-- Rendered by JS -->
+        </div>
+        <div class="contract-divider"></div>
+        <div class="contract-row">
+          <span class="contract-row-label">自费增项总额</span>
+          <span class="contract-row-value" id="contractExtras" style="color: #D97706;">¥0.00</span>
+        </div>
+        <div class="contract-alert" id="contractAlert">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5v4M8 11v.01"/><circle cx="8" cy="8" r="7"/></svg>
+          <span id="contractRemaining">还差 ¥0.00 未付</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="light-label" style="padding: 0 0 10px;">款项记录</div>
+      <div class="card card-animate" style="padding: 20px 20px 8px;">
+        <div class="timeline" id="contractTimeline">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <button class="fab" id="fabContract" onclick="openContractSheet()">
+      新增款项
+    </button>
+  </div>
+
+  <!-- ============================================================
+       TAB 4: CYCLES — 周期
+       ============================================================ -->
+  <div id="tab-cycles" class="tab-panel">
+    <div class="section" style="margin-top: 12px;">
+      <div class="cycle-tag-label">装修阶段</div>
+      <div class="cycle-scroll" id="cycleScroll">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Overview Section -->
+    <div class="section" style="margin-top: 8px;">
+      <div class="cycle-tag-label">阶段概览</div>
+      <div class="card" style="padding: 20px;" id="cycleOverview">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM TAB BAR — SVG inline icons
+       ============================================================ -->
+  <nav class="tab-bar">
+    <button class="tab-item active" onclick="switchTab('home', this)">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1z"/><path d="M9 21V14h6v7"/></svg>
+      首页
+    </button>
+    <button class="tab-item" onclick="switchTab('accounting', this)">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h5M8 15h6"/></svg>
+      记账
+    </button>
+    <button class="tab-item" onclick="switchTab('contract', this)">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+      合同
+    </button>
+    <button class="tab-item" onclick="switchTab('cycles', this)">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      周期
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       BOTTOM SHEET — Add Expense Form
+       ============================================================ -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+  <div class="bottom-sheet" id="bottomSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">记一笔</div>
+    <div class="form-group">
+      <label class="form-label">金额</label>
+      <input type="number" class="form-input" id="expenseAmount" placeholder="¥ 0.00">
+    </div>
+    <div class="form-group">
+      <label class="form-label">分类</label>
+      <div class="form-toggle" id="categoryToggle">
+        <!-- Rendered by JS from categories -->
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">子分类</label>
+      <div class="form-toggle" id="subcategoryToggle">
+        <!-- Rendered by JS from sub_categories -->
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">来源</label>
+        <div class="form-toggle">
+          <button class="form-toggle-btn active" onclick="toggleFormBtn(this)" data-source="淘宝">淘宝</button>
+          <button class="form-toggle-btn" onclick="toggleFormBtn(this)" data-source="京东">京东</button>
+          <button class="form-toggle-btn" onclick="toggleFormBtn(this)" data-source="线下">线下</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">日期</label>
+        <input type="date" class="form-input" id="expenseDate">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">备注</label>
+      <input type="text" class="form-input" id="expenseNote" placeholder="选填">
+    </div>
+    <button class="btn-sheet-primary" onclick="saveExpense()">保存</button>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM SHEET — Add Contract
+       ============================================================ -->
+  <div class="sheet-overlay" id="contractSheetOverlay" onclick="closeContractSheet()"></div>
+  <div class="bottom-sheet" id="contractBottomSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">新增款项</div>
+    <div class="form-group">
+      <label class="form-label">金额</label>
+      <input type="number" class="form-input" id="contractAmount" placeholder="¥ 0.00">
+    </div>
+    <div class="form-group">
+      <label class="form-label">类型</label>
+      <div class="form-toggle">
+        <button class="form-toggle-btn active" onclick="toggleFormBtn(this)" data-ctype="合同款">合同款</button>
+        <button class="form-toggle-btn" onclick="toggleFormBtn(this)" data-ctype="增项">增项</button>
+        <button class="form-toggle-btn" onclick="toggleFormBtn(this)" data-ctype="待付">待付</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">备注</label>
+      <input type="text" class="form-input" id="contractNote" placeholder="如：首期款 · 银行转账">
+    </div>
+    <div class="form-group">
+      <label class="form-label">日期</label>
+      <input type="date" class="form-input" id="contractDate">
+    </div>
+    <button class="btn-sheet-primary" onclick="saveContract()">保存</button>
+  </div>
+
+  <!-- ============================================================
+       SUB-PAGE: CATEGORY DETAIL — Filtered transactions + sticky budget
+       ============================================================ -->
+  <div class="sub-page" id="subCategoryDetail">
+    <div class="sub-header">
+      <button class="sub-back" onclick="closeSubPage('subCategoryDetail')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 3L5 8l5 5"/></svg>
+      </button>
+      <span class="sub-title" id="catDetailTitle">硬装明细</span>
+    </div>
+    <div class="sub-content">
+      <div class="cat-detail-header" id="catDetailAmount">¥0</div>
+      <div class="cat-detail-sub" id="catDetailCount">共 0 笔支出</div>
+      <div class="card" style="padding: 4px 16px;" id="catDetailList">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+    <div class="cat-detail-budget-bar" id="catDetailBudgetBar">
+      <div class="cat-detail-budget-info">
+        <span style="color: var(--muted);">类别预算</span>
+        <span style="font-weight: 600; color: var(--fg);" id="catBudgetText">¥0</span>
+      </div>
+      <div class="dark-progress-track">
+        <div class="dark-progress-fill" id="catBudgetFill" style="--progress: 0%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SUB-PAGE: REMINDER DETAIL
+       ============================================================ -->
+  <div class="sub-page" id="subReminderDetail">
+    <div class="sub-header">
+      <button class="sub-back" onclick="closeSubPage('subReminderDetail')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 3L5 8l5 5"/></svg>
+      </button>
+      <span class="sub-title">提醒详情</span>
+    </div>
+    <div class="sub-content" id="reminderDetailContent">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SUB-PAGE: REMINDER HISTORY
+       ============================================================ -->
+  <div class="sub-page" id="subReminderHistory">
+    <div class="sub-header">
+      <button class="sub-back" onclick="closeSubPage('subReminderHistory')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 3L5 8l5 5"/></svg>
+      </button>
+      <span class="sub-title">提醒历史</span>
+    </div>
+    <div class="sub-content" id="reminderHistoryContent">
+      <div class="empty-state">暂无已完成的提醒</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SUB-PAGE: BUDGET SETTINGS — 3-level hierarchy
+       ============================================================ -->
+  <div class="sub-page" id="subBudgetSettings">
+    <div class="sub-header">
+      <button class="sub-back" onclick="closeSubPage('subBudgetSettings')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 3L5 8l5 5"/></svg>
+      </button>
+      <span class="sub-title">金字塔预算设置</span>
+    </div>
+    <div class="sub-content">
+      <div class="budget-group">
+        <div class="budget-group-title">总预算</div>
+        <div class="budget-item">
+          <div class="budget-item-label">装修总预算</div>
+          <input type="number" class="budget-input" id="budgetTotalInput" value="200000" oninput="checkBudget(this)">
+          <div class="budget-warning" style="display:none;" id="budgetWarning">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v4M6 9.5v.5"/></svg>
+            预算过低，已超出
+          </div>
+        </div>
+      </div>
+      <div class="budget-group">
+        <div class="budget-group-title">一级分类预算</div>
+        <div class="budget-item">
+          <div class="budget-item-label">硬装预算</div>
+          <input type="number" class="budget-input" id="budgetHardInput" value="120000">
+        </div>
+        <div class="budget-item">
+          <div class="budget-item-label">软装预算</div>
+          <input type="number" class="budget-input" id="budgetSoftInput" value="80000">
+        </div>
+      </div>
+      <div class="budget-group">
+        <div class="budget-group-title">二级分类预算</div>
+        <div class="budget-item">
+          <div class="budget-item-label">人工预算</div>
+          <input type="number" class="budget-input" id="budgetLaborInput" value="20000">
+        </div>
+        <div class="budget-item">
+          <div class="budget-item-label">设计预算</div>
+          <input type="number" class="budget-input" id="budgetDesignInput" value="10000">
+        </div>
+      </div>
+      <button class="btn-primary" onclick="saveBudget()">保存设置</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TOAST
+     ============================================================ -->
+<div id="toast"></div>
+
+<script>
+/* ==============================================================
+   SUPABASE CONFIG
+   ============================================================== */
+const SUPABASE_URL = 'https://eqajhafwstuhfkesekeb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWpoYWZ3c3R1aGZrZXNla2ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDg1OTUsImV4cCI6MjA5ODEyNDU5NX0.QldlX0yS7iS_A148yyydO8D3cdkVSSKPk5IwJfdT6fI';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ==============================================================
+   APP STATE
+   ============================================================== */
+var currentUser = null;
+var appData = {
+  expenses: [],
+  categories: [],
+  contracts: [],
+  reminders: [],
+  completedReminders: [],
+  cycles: [],
+  budget: null
+};
+
+var loginMode = 'login'; // 'login' or 'register'
+
+/* ==============================================================
+   HELPER FUNCTIONS
+   ============================================================== */
+function formatMoney(n) {
+  return '¥' + Number(n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr);
+  return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+}
+
+function formatDateFull(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function getWeekDay(dateStr) {
+  var days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  return days[new Date(dateStr).getDay()];
+}
+
+function getUser() {
+  return sb.auth.getUser();
+}
+
+function getUserId() {
+  return currentUser ? currentUser.id : null;
+}
+
+var ICON_MAP = {
+  'teal': '<svg width="18" height="18" fill="none" stroke="#34D399" stroke-width="2"><rect x="2" y="4" width="14" height="12" rx="2"/><path d="M2 8h14"/></svg>',
+  'blue': '<svg width="18" height="18" fill="none" stroke="#1664ff" stroke-width="2"><rect x="3" y="3" width="12" height="12" rx="2"/><path d="M7 7h4M7 11h2"/></svg>',
+  'amber': '<svg width="18" height="18" fill="none" stroke="#FBBF24" stroke-width="2"><circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 2"/></svg>',
+  'rose': '<svg width="18" height="18" fill="none" stroke="#F87171" stroke-width="2"><path d="M12 3H6a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h6l4 3V6a3 3 0 0 0-3-3z"/></svg>',
+  'purple': '<svg width="18" height="18" fill="none" stroke="#A78BFA" stroke-width="2"><path d="M14 4l-8 8M6 4l8 8"/></svg>'
+};
+
+function getIconColor(catName) {
+  var map = { '硬装': 'teal', '软装': 'blue', '人工': 'amber', '设计': 'rose' };
+  return map[catName] || 'teal';
+}
+
+/* ==============================================================
+   TOAST
+   ============================================================== */
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  setTimeout(function() {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(-20px)';
+  }, 2500);
+}
+
+/* ==============================================================
+   AUTH: LOGIN / REGISTER / LOGOUT
+   ============================================================== */
+function toggleLoginMode() {
+  loginMode = loginMode === 'login' ? 'register' : 'login';
+  document.getElementById('loginModeLabel').textContent = loginMode === 'login' ? '登录' : '注册';
+  document.getElementById('loginBtn').style.display = loginMode === 'login' ? 'block' : 'none';
+  document.getElementById('registerBtn').style.display = loginMode === 'register' ? 'block' : 'none';
+  document.getElementById('loginToggle').innerHTML = loginMode === 'login'
+    ? '还没有账号？<a onclick="toggleLoginMode()">去注册</a>'
+    : '已有账号？<a onclick="toggleLoginMode()">去登录</a>';
+  document.getElementById('loginError').textContent = '';
+}
+
+function handleLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var password = document.getElementById('loginPassword').value;
+  var errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+
+  if (!email || !password) {
+    errorEl.textContent = '请填写邮箱和密码';
+    return;
+  }
+
+  document.getElementById('loginBtn').textContent = '登录中...';
+  sb.auth.signInWithPassword({ email: email, password: password })
+    .then(function() {
+      // onAuthStateChange will handle the rest
+    })
+    .catch(function(err) {
+      errorEl.textContent = err.message || '登录失败，请重试';
+      document.getElementById('loginBtn').textContent = '登录';
+    });
+}
+
+function handleRegister() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var password = document.getElementById('loginPassword').value;
+  var errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+
+  if (!email || !password) {
+    errorEl.textContent = '请填写邮箱和密码';
+    return;
+  }
+  if (password.length < 6) {
+    errorEl.textContent = '密码至少需要6个字符';
+    return;
+  }
+
+  document.getElementById('registerBtn').textContent = '注册中...';
+  sb.auth.signUp({ email: email, password: password })
+    .then(function(result) {
+      if (result.error) throw result.error;
+      errorEl.textContent = '';
+      if (result.data.user && !result.data.session) {
+        errorEl.style.color = '#059669';
+        errorEl.textContent = '注册成功！请查收邮箱确认链接后登录。';
+        document.getElementById('registerBtn').textContent = '注册';
+      }
+    })
+    .catch(function(err) {
+      errorEl.style.color = '#DC2626';
+      errorEl.textContent = err.message || '注册失败，请重试';
+      document.getElementById('registerBtn').textContent = '注册';
+    });
+}
+
+function handleLogout() {
+  sb.auth.signOut().catch(function() {});
+}
+
+/* ==============================================================
+   SHOW / HIDE LOGIN vs APP
+   ============================================================== */
+function showLogin() {
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loadingOverlay').style.display = 'none';
+  document.getElementById('loginBtn').textContent = '登录';
+  document.getElementById('registerBtn').textContent = '注册';
+}
+
+function showApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('loadingOverlay').style.display = 'none';
+
+  // Set header date
+  var now = new Date();
+  var y = now.getFullYear();
+  var m = now.getMonth() + 1;
+  var d = now.getDate();
+  var wd = getWeekDay(now.toISOString());
+  document.getElementById('headerDate').textContent = y + '年' + m + '月' + d + '日 ' + wd;
+
+  // Set expense date default
+  document.getElementById('expenseDate').value = formatDateFull(now.toISOString());
+  document.getElementById('contractDate').value = formatDateFull(now.toISOString());
+}
+
+/* ==============================================================
+   DATA LOADING
+   ============================================================== */
+function loadAllData() {
+  var userId = getUserId();
+  if (!userId) return;
+
+  document.getElementById('loadingOverlay').style.display = 'flex';
+
+  Promise.all([
+    loadExpenses(),
+    loadCategories(),
+    loadContracts(),
+    loadReminders(),
+    loadCycles(),
+    loadBudget()
+  ]).then(function() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    renderAll();
+    subscribeRealtime();
+  }).catch(function(err) {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    showToast('网络错误，请重试');
+    console.error('Load error:', err);
+  });
+}
+
+function loadExpenses() {
+  return sb.from('expenses').select('*').eq('user_id', getUserId()).order('date', { ascending: false })
+    .then(function(result) {
+      if (result.error) throw result.error;
+      appData.expenses = result.data || [];
+    });
+}
+
+function loadCategories() {
+  return sb.from('categories').select('*, sub_categories(*)').eq('user_id', getUserId())
+    .then(function(result) {
+      if (result.error) throw result.error;
+      appData.categories = result.data || [];
+      renderCategoryToggle();
+    });
+}
+
+function loadContracts() {
+  return sb.from('contracts').select('*').eq('user_id', getUserId()).order('date', { ascending: false })
+    .then(function(result) {
+      if (result.error) throw result.error;
+      appData.contracts = result.data || [];
+    });
+}
+
+function loadReminders() {
+  var userId = getUserId();
+  if (!userId) return Promise.resolve();
+  return Promise.all([
+    sb.from('reminders').select('*').eq('user_id', userId).eq('status', '进行中').order('deadline', { ascending: true }),
+    sb.from('reminders').select('*').eq('user_id', userId).eq('status', '已完成').order('completed_at', { ascending: false })
+  ]).then(function(results) {
+    if (results[0].error) throw results[0].error;
+    if (results[1].error) throw results[1].error;
+    appData.reminders = results[0].data || [];
+    appData.completedReminders = results[1].data || [];
+    renderReminders();
+    renderReminderHistory();
+  });
+}
+
+function loadCycles() {
+  return sb.from('cycles').select('*').eq('user_id', getUserId()).order('order_index', { ascending: true })
+    .then(function(result) {
+      if (result.error) throw result.error;
+      appData.cycles = result.data || [];
+    });
+}
+
+function loadBudget() {
+  return sb.from('budget_settings').select('*').eq('user_id', getUserId()).single()
+    .then(function(result) {
+      if (result.error && result.error.code === 'PGRST116') {
+        // No row yet, use defaults
+        appData.budget = { total_budget: 200000, hard_budget: 120000, soft_budget: 80000, labor_budget: 20000, design_budget: 10000 };
+      } else if (result.error) {
+        throw result.error;
+      } else {
+        appData.budget = result.data || { total_budget: 200000, hard_budget: 120000, soft_budget: 80000, labor_budget: 20000, design_budget: 10000 };
+      }
+    });
+}
+
+/* ==============================================================
+   DATA MUTATION
+   ============================================================== */
+function addExpense(data) {
+  return sb.from('expenses').insert(data).then(function(result) {
+    if (result.error) throw result.error;
+    return result;
+  });
+}
+
+function deleteExpense(id) {
+  return sb.from('expenses').delete().eq('id', id).then(function(result) {
+    if (result.error) throw result.error;
+    return result;
+  });
+}
+
+function addContract(data) {
+  return sb.from('contracts').insert(data).then(function(result) {
+    if (result.error) throw result.error;
+    return result;
+  });
+}
+
+function toggleContractStatus(id, status) {
+  return sb.from('contracts').update({ status: status }).eq('id', id).then(function(result) {
+    if (result.error) throw result.error;
+    return result;
+  });
+}
+
+function addReminder(data) {
+  return sb.from('reminders').insert(data).then(function(result) {
+    if (result.error) throw result.error;
+    return result;
+  });
+}
+
+function completeReminder(id) {
+  return sb.from('reminders').update({ status: '已完成', completed_at: new Date().toISOString() }).eq('id', id)
+    .then(function(result) {
+      if (result.error) throw result.error;
+      return result;
+    });
+}
+
+function deleteReminderDb(id) {
+  return sb.from('reminders').delete().eq('id', id).then(function(result) {
+    if (result.error) throw result.error;
+    return result;
+  });
+}
+
+function updateCycleStatus(id, status) {
+  return sb.from('cycles').update({ status: status }).eq('id', id).then(function(result) {
+    if (result.error) throw result.error;
+    return result;
+  });
+}
+
+function updateBudget(amount) {
+  return sb.from('budget_settings').upsert({ user_id: getUserId(), total_budget: amount }, { onConflict: 'user_id' })
+    .then(function(result) {
+      if (result.error) throw result.error;
+      return result;
+    });
+}
+
+function updateFullBudget(data) {
+  return sb.from('budget_settings').upsert(
+    Object.assign({ user_id: getUserId() }, data),
+    { onConflict: 'user_id' }
+  ).then(function(result) {
+    if (result.error) throw result.error;
+    return result;
+  });
+}
+
+/* ==============================================================
+   REALTIME SUBSCRIPTIONS
+   ============================================================== */
+var realtimeChannel = null;
+
+function subscribeRealtime() {
+  if (realtimeChannel) {
+    sb.removeChannel(realtimeChannel);
+  }
+  realtimeChannel = sb.channel('app-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, function() {
+      loadExpenses().then(function() { renderAll(); });
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reminders' }, function() {
+      loadReminders();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, function() {
+      loadContracts().then(function() { renderContracts(); });
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'cycles' }, function() {
+      loadCycles().then(function() { renderCycles(); });
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'budget_settings' }, function() {
+      loadBudget().then(function() { renderHomeHero(); });
+    })
+    .subscribe();
+}
+
+/* ==============================================================
+   RENDER ALL
+   ============================================================== */
+function renderAll() {
+  renderHomeHero();
+  renderReminders();
+  renderRecentTransactions();
+  renderSummary();
+  renderFlow();
+  renderContracts();
+  renderCycles();
+}
+
+/* ==============================================================
+   RENDER: Home Hero
+   ============================================================== */
+function renderHomeHero() {
+  var expenses = appData.expenses;
+  var total = 0, hardTotal = 0, softTotal = 0;
+  expenses.forEach(function(e) {
+    var amt = Number(e.amount) || 0;
+    total += amt;
+    if (e.category === '硬装') hardTotal += amt;
+    if (e.category === '软装') softTotal += amt;
+  });
+
+  var budget = appData.budget ? Number(appData.budget.total_budget) || 0 : 200000;
+  var pct = budget > 0 ? Math.min((total / budget) * 100, 100) : 0;
+
+  document.getElementById('heroTotalAmount').textContent = formatMoney(total);
+  document.getElementById('heroBudgetSubtitle').textContent = '累计总预算 ' + formatMoney(budget);
+  document.getElementById('heroHardAmount').textContent = formatMoney(hardTotal);
+  document.getElementById('heroSoftAmount').textContent = formatMoney(softTotal);
+  document.getElementById('heroProgressFill').style.setProperty('--progress', pct.toFixed(1) + '%');
+  document.getElementById('heroProgressPercent').textContent = pct.toFixed(1) + '%';
+
+  var tagEl = document.getElementById('heroBudgetTag');
+  if (total > budget) {
+    tagEl.innerHTML = '<span class="tag tag-danger">预算已超支</span>';
+  } else if (pct > 80) {
+    tagEl.innerHTML = '<span class="tag tag-warning">预算紧张</span>';
+  } else {
+    tagEl.innerHTML = '<span class="tag-white-success">&#10003; 预算充足</span>';
+  }
+
+  requestAnimationFrame(function() {
+    document.querySelectorAll('.hero-progress-fill').forEach(function(el) {
+      el.classList.add('animated');
+    });
+  });
+}
+
+/* ==============================================================
+   RENDER: Reminders
+   ============================================================== */
+function renderReminders() {
+  var container = document.getElementById('reminderList');
+  var reminders = appData.reminders;
+
+  if (reminders.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding:30px 20px;">暂无待办提醒</div>';
+    return;
+  }
+
+  var html = '';
+  reminders.forEach(function(r, i) {
+    var pClass = r.priority === '紧急' ? 'priority-urgent' : (r.priority === '重要' ? 'priority-important' : 'priority-normal');
+    var tagClass = r.priority === '紧急' ? 'tag-urgent' : (r.priority === '重要' ? 'tag-important' : 'tag-normal');
+    var deadlineStr = r.deadline ? '截止 ' + formatDate(r.deadline) : '';
+
+    html += '<div class="reminder-card-item card card-animate ' + pClass + '" onclick="openReminderDetail(\'' + r.id + '\')">' +
+      '<div class="reminder-card-top">' +
+        '<div class="reminder-card-title">' + escHtml(r.title) + '</div>' +
+        '<span class="tag ' + tagClass + '">' + escHtml(r.priority) + '</span>' +
+      '</div>' +
+      '<div class="reminder-card-bottom">' +
+        '<span class="reminder-card-date">' + deadlineStr + '</span>' +
+      '</div>' +
+    '</div>';
+    html += '<div class="delete-confirm" id="deleteConfirm' + i + '">' +
+      '<span class="delete-confirm-text">确认删除此提醒？</span>' +
+      '<button class="delete-confirm-btn delete-confirm-no" onclick="event.stopPropagation(); hideDeleteConfirm(' + i + ')">取消</button>' +
+      '<button class="delete-confirm-btn delete-confirm-yes" onclick="event.stopPropagation(); confirmDeleteReminder(\'' + r.id + '\',' + i + ')">删除</button>' +
+    '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ==============================================================
+   RENDER: Recent Transactions (Home tab)
+   ============================================================== */
+function renderRecentTransactions() {
+  var container = document.getElementById('recentTxCard');
+  var recent = appData.expenses.slice(0, 8);
+
+  if (recent.length === 0) {
+    container.innerHTML = '<div style="padding:30px 16px; text-align:center; color:var(--muted); font-size:14px;">暂无交易记录</div>';
+    return;
+  }
+
+  var html = '';
+  recent.forEach(function(e) {
+    var color = getIconColor(e.category);
+    html += '<div class="transaction-item">' +
+      '<div class="tx-icon ' + color + '">' + ICON_MAP[color] + '</div>' +
+      '<div class="tx-info">' +
+        '<div class="tx-name">' + escHtml(e.item_name || e.sub_category || '支出') + '</div>' +
+        '<div class="tx-meta">' +
+          '<span class="tx-date">' + formatDate(e.date) + '</span>' +
+          '<span class="source-pill">' + escHtml(e.source || '其他') + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="tx-amount">+' + formatMoney(e.amount) + '</div>' +
+    '</div>';
+  });
+  container.innerHTML = html;
+}
+
+/* ==============================================================
+   RENDER: Summary (Accounting tab)
+   ============================================================== */
+function renderSummary() {
+  var container = document.getElementById('summaryList');
+  var categories = appData.categories;
+  var expenses = appData.expenses;
+
+  if (categories.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding:30px 20px;">暂无分类数据</div>';
+    return;
+  }
+
+  // Build aggregation
+  var catAgg = {};
+  categories.forEach(function(cat) {
+    catAgg[cat.name] = { name: cat.name, icon: cat.icon || getIconColor(cat.name), total: 0, count: 0, subs: {} };
+    if (cat.sub_categories && cat.sub_categories.length > 0) {
+      cat.sub_categories.forEach(function(sub) {
+        catAgg[cat.name].subs[sub.name] = 0;
+      });
+    }
+  });
+
+  expenses.forEach(function(e) {
+    if (catAgg[e.category]) {
+      catAgg[e.category].total += Number(e.amount) || 0;
+      catAgg[e.category].count++;
+      if (e.sub_category && catAgg[e.category].subs.hasOwnProperty(e.sub_category)) {
+        catAgg[e.category].subs[e.sub_category] += Number(e.amount) || 0;
+      }
+    }
+  });
+
+  var html = '';
+  var colorClasses = ['teal', 'blue', 'amber', 'rose', 'purple'];
+  var ci = 0;
+  Object.values(catAgg).forEach(function(cat) {
+    var cc = colorClasses[ci % colorClasses.length];
+    ci++;
+    html += '<div class="summary-category card" onclick="toggleCategory(this)">' +
+      '<div class="summary-cat-header">' +
+        '<div class="summary-cat-icon ' + cc + '">' + ICON_MAP[cc] + '</div>' +
+        '<div class="summary-cat-info">' +
+          '<div class="summary-cat-name">' + escHtml(cat.name) + '</div>' +
+          '<div class="summary-cat-count">' + cat.count + '笔</div>' +
+        '</div>' +
+        '<div class="summary-cat-right">' +
+          '<span class="summary-cat-amount">' + formatMoney(cat.total) + '</span>' +
+          '<span class="summary-cat-arrow">&#8250;</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="summary-subitems">';
+
+    Object.keys(cat.subs).forEach(function(subName) {
+      html += '<div class="summary-subitem">' +
+        '<span class="summary-subitem-name">' + escHtml(subName) + '</span>' +
+        '<span class="summary-subitem-amount">' + formatMoney(cat.subs[subName]) + '</span>' +
+      '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  container.innerHTML = html;
+}
+
+/* ==============================================================
+   RENDER: Flow (Accounting tab)
+   ============================================================== */
+function renderFlow() {
+  var container = document.getElementById('flowList');
+  var expenses = appData.expenses;
+
+  if (expenses.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding:30px 20px;">暂无流水记录</div>';
+    return;
+  }
+
+  // Group by date
+  var groups = {};
+  expenses.forEach(function(e) {
+    var dateKey = e.date ? e.date.substring(0, 10) : '未知';
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(e);
+  });
+
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+
+  var html = '';
+  Object.keys(groups).sort(function(a, b) { return b.localeCompare(a); }).forEach(function(dateKey) {
+    var items = groups[dateKey];
+    var isToday = dateKey === todayStr;
+    var label = isToday ? '今天' : formatDate(dateKey);
+    var wd = getWeekDay(dateKey);
+    var headerLabel = label + ' \u00B7 ' + formatDate(dateKey) + ' ' + wd;
+
+    html += '<div class="transaction-group card-animate">' +
+      '<div class="group-header">' + headerLabel + '</div>' +
+      '<div class="card flow-group-card">';
+
+    items.forEach(function(e) {
+      var color = getIconColor(e.category);
+      html += '<div class="transaction-item">' +
+        '<div class="tx-icon ' + color + '">' + ICON_MAP[color] + '</div>' +
+        '<div class="tx-info">' +
+          '<div class="tx-name">' + escHtml(e.item_name || e.sub_category || '支出') + '</div>' +
+          '<div class="tx-meta">' +
+            '<span class="tx-date">' + escHtml(e.category || '') + ' \u00B7 ' + escHtml(e.sub_category || '') + '</span>' +
+            '<span class="source-pill">' + escHtml(e.source || '其他') + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="tx-amount">+' + formatMoney(e.amount) + '</div>' +
+      '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  container.innerHTML = html;
+}
+
+/* ==============================================================
+   RENDER: Contracts
+   ============================================================== */
+function renderContracts() {
+  var contracts = appData.contracts;
+  var paid = 0, extras = 0, totalContract = 0;
+
+  contracts.forEach(function(c) {
+    var amt = Number(c.amount) || 0;
+    if (c.type === '合同款' && c.status !== '待付') {
+      paid += amt;
+      totalContract += amt;
+    } else if (c.type === '增项' && c.status !== '待付') {
+      extras += amt;
+      totalContract += amt;
+    } else if (c.type === '待付') {
+      totalContract += amt;
+    }
+  });
+
+  var remaining = contracts.reduce(function(sum, c) {
+    return sum + (c.status === '待付' ? Number(c.amount) || 0 : 0);
+  }, 0);
+
+  document.getElementById('contractTotalPaid').textContent = formatMoney(paid);
+  document.getElementById('contractExtras').textContent = formatMoney(extras);
+  document.getElementById('contractRemaining').textContent = '还差 ' + formatMoney(remaining) + ' 未付';
+
+  // Rows: group by type
+  var rowHtml = '';
+  var types = {};
+  contracts.forEach(function(c) {
+    if (!types[c.type]) types[c.type] = 0;
+    types[c.type] += Number(c.amount) || 0;
+  });
+  if (types['合同款']) {
+    rowHtml += '<div class="contract-row"><span class="contract-row-label">合同款</span><span class="contract-row-value">' + formatMoney(types['合同款']) + '</span></div>';
+  }
+  if (types['增项']) {
+    rowHtml += '<div class="contract-row"><span class="contract-row-label">增项</span><span class="contract-row-value">' + formatMoney(types['增项']) + '</span></div>';
+  }
+  document.getElementById('contractRows').innerHTML = rowHtml;
+
+  // Timeline
+  var tlHtml = '';
+  var dotColors = { '合同款': 'blue', '增项': 'orange', '待付': 'purple' };
+  var tagClasses = { '合同款': 'tag-blue', '增项': 'tag-orange', '待付': 'tag-gray' };
+
+  contracts.forEach(function(c) {
+    var dot = dotColors[c.type] || 'blue';
+    var tag = tagClasses[c.type] || 'tag-gray';
+    var amtColor = c.type === '待付' ? 'color: var(--muted);' : '';
+    tlHtml += '<div class="timeline-node">' +
+      '<div class="timeline-dot ' + dot + '"></div>' +
+      '<div class="card timeline-card">' +
+        '<div class="timeline-amount" style="' + amtColor + '">' + formatMoney(c.amount) + '</div>' +
+        '<div class="timeline-meta">' +
+          '<span class="tag ' + tag + '">' + escHtml(c.type) + '</span>' +
+          '<span class="timeline-date">' + (c.date ? formatDateFull(c.date) : '') + '</span>' +
+        '</div>' +
+        '<div class="timeline-note">' + escHtml(c.note || '') + '</div>' +
+      '</div>' +
+    '</div>';
+  });
+  document.getElementById('contractTimeline').innerHTML = tlHtml || '<div class="empty-state" style="padding:20px;">暂无款项记录</div>';
+}
+
+/* ==============================================================
+   RENDER: Cycles
+   ============================================================== */
+function renderCycles() {
+  var cycles = appData.cycles;
+  var scrollContainer = document.getElementById('cycleScroll');
+
+  if (cycles.length === 0) {
+    scrollContainer.innerHTML = '<div class="empty-state" style="padding:30px 20px;">暂无周期数据</div>';
+    return;
+  }
+
+  var scrollHtml = '';
+  var completedCount = 0;
+  var totalBudget = 0, totalUsed = 0;
+
+  cycles.forEach(function(c) {
+    var budget = Number(c.budget) || 0;
+    var used = Number(c.used) || 0;
+    totalBudget += budget;
+    totalUsed += used;
+    var pct = budget > 0 ? Math.min((used / budget) * 100, 100) : 0;
+    var statusTag = '';
+    if (c.status === '已完成') { statusTag = '<span class="tag-wc tag-wc-green">已完成</span>'; completedCount++; }
+    else if (c.status === '进行中') { statusTag = '<span class="tag-wc tag-wc-green">进行中</span>'; }
+    else { statusTag = '<span class="tag-wc tag-wc-gray">未开始</span>'; }
+
+    scrollHtml += '<div class="cycle-card card card-animate">' +
+      '<div class="cycle-name">' + escHtml(c.name) + '</div>' +
+      statusTag +
+      '<div class="cycle-progress-track">' +
+        '<div class="cycle-progress-fill" style="--progress: ' + pct.toFixed(1) + '%;"></div>' +
+      '</div>' +
+      '<div class="cycle-budget">' +
+        '<span>预算 ' + formatMoney(budget) + '</span>' +
+        '<span class="cycle-amount">已用 ' + formatMoney(used) + '</span>' +
+      '</div>' +
+    '</div>';
+  });
+
+  scrollContainer.innerHTML = scrollHtml;
+
+  // Overview
+  var overallPct = totalBudget > 0 ? (totalUsed / totalBudget * 100) : 0;
+  var currentCycle = cycles.find(function(c) { return c.status === '进行中'; });
+  var currentName = currentCycle ? currentCycle.name : '-';
+
+  document.getElementById('cycleOverview').innerHTML =
+    '<div style="display: flex; justify-content: space-between; margin-bottom: 16px;">' +
+      '<div>' +
+        '<div style="font-size: 14px; color: var(--muted); margin-bottom: 4px;">已完成阶段</div>' +
+        '<div style="font-size: 20px; font-weight: 800; color: var(--fg);">' + completedCount + ' / ' + cycles.length + '</div>' +
+      '</div>' +
+      '<div style="text-align: right;">' +
+        '<div style="font-size: 14px; color: var(--muted); margin-bottom: 4px;">整体进度</div>' +
+        '<div style="font-size: 20px; font-weight: 800; color: var(--fg);">' + overallPct.toFixed(1) + '%</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="width: 100%; height: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden;">' +
+      '<div style="width: ' + overallPct.toFixed(1) + '%; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #10B981, #34D399);"></div>' +
+    '</div>' +
+    '<div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px;">' +
+      '<span style="color: var(--muted);">当前: ' + escHtml(currentName) + '</span>' +
+      '<span style="color: #10B981; font-weight: 600;">总预算 ' + formatMoney(totalBudget) + '</span>' +
+    '</div>';
+
+  requestAnimationFrame(function() {
+    document.querySelectorAll('.cycle-progress-fill').forEach(function(el) {
+      el.classList.add('animated');
+    });
+  });
+}
+
+/* ==============================================================
+   RENDER: Category Toggle in Sheet (dynamic from DB)
+   ============================================================== */
+function renderCategoryToggle() {
+  var container = document.getElementById('categoryToggle');
+  var categories = appData.categories;
+  if (categories.length === 0) {
+    container.innerHTML = '<button class="form-toggle-btn active" onclick="toggleFormBtn(this)" data-cat="硬装">硬装</button>' +
+      '<button class="form-toggle-btn" onclick="toggleFormBtn(this)" data-cat="软装">软装</button>' +
+      '<button class="form-toggle-btn" onclick="toggleFormBtn(this)" data-cat="人工">人工</button>' +
+      '<button class="form-toggle-btn" onclick="toggleFormBtn(this)" data-cat="设计">设计</button>';
+    renderSubcategoryToggle('硬装');
+    return;
+  }
+
+  var html = '';
+  categories.forEach(function(cat, i) {
+    var active = i === 0 ? ' active' : '';
+    html += '<button class="form-toggle-btn' + active + '" onclick="toggleFormBtn(this); renderSubcategoryToggle(\'' + escHtml(cat.name) + '\')" data-cat="' + escHtml(cat.name) + '">' + escHtml(cat.name) + '</button>';
+  });
+  container.innerHTML = html;
+  renderSubcategoryToggle(categories[0] ? categories[0].name : '');
+}
+
+function renderSubcategoryToggle(catName) {
+  var container = document.getElementById('subcategoryToggle');
+  var cat = appData.categories.find(function(c) { return c.name === catName; });
+
+  if (!cat || !cat.sub_categories || cat.sub_categories.length === 0) {
+    container.innerHTML = '<input type="text" class="form-input" id="subcategoryInput" placeholder="输入子分类名称" style="flex:1;">';
+    return;
+  }
+
+  var html = '';
+  cat.sub_categories.forEach(function(sub, i) {
+    var active = i === 0 ? ' active' : '';
+    html += '<button class="form-toggle-btn' + active + '" onclick="toggleFormBtn(this)" data-sub="' + escHtml(sub.name) + '">' + escHtml(sub.name) + '</button>';
+  });
+  container.innerHTML = html;
+}
+
+/* ==============================================================
+   RENDER: Reminder History
+   ============================================================== */
+function renderReminderHistory() {
+  var container = document.getElementById('reminderHistoryContent');
+  var completed = appData.completedReminders;
+
+  if (completed.length === 0) {
+    container.innerHTML = '<div class="empty-state">暂无已完成的提醒</div>';
+    return;
+  }
+
+  var html = '<div class="card" style="padding: 4px 16px;">';
+  completed.forEach(function(r) {
+    var tagClass = r.priority === '紧急' ? 'tag-urgent' : (r.priority === '重要' ? 'tag-important' : 'tag-normal');
+    html += '<div class="history-item">' +
+      '<span class="history-title">' + escHtml(r.title) + '</span>' +
+      '<span class="tag ' + tagClass + '">' + escHtml(r.priority) + '</span>' +
+    '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+/* ==============================================================
+   TAB SWITCHING — Fade 200ms
+   ============================================================== */
+function switchTab(tabName, btn) {
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tab-item').forEach(function(t) { t.classList.remove('active'); });
+  document.getElementById('tab-' + tabName).classList.add('active');
+  btn.classList.add('active');
+
+  // FAB visibility
+  var fabMap = {
+    home: 'fabHome',
+    accounting: 'fabAccounting',
+    contract: 'fabContract'
+  };
+  document.querySelectorAll('.fab').forEach(function(f) { f.classList.add('hidden'); });
+  if (fabMap[tabName]) {
+    document.getElementById(fabMap[tabName]).classList.remove('hidden');
+  }
+
+  // Animate progress bars on tab switch
+  requestAnimationFrame(function() {
+    document.querySelectorAll('.hero-progress-fill, .cycle-progress-fill, .dark-progress-fill').forEach(function(el) {
+      el.classList.add('animated');
+    });
+  });
+}
+
+/* ==============================================================
+   SEGMENT TOGGLE — 汇总 / 流水
+   ============================================================== */
+function toggleSegment(btn, view) {
+  document.querySelectorAll('.segment-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('view-summary').style.display = view === 'summary' ? 'block' : 'none';
+  document.getElementById('view-flow').style.display = view === 'flow' ? 'block' : 'none';
+}
+
+/* ==============================================================
+   CATEGORY EXPAND/COLLAPSE — max-height 300ms, arrow rotate 200ms
+   ============================================================== */
+function toggleCategory(el) {
+  var subitems = el.querySelector('.summary-subitems');
+  var arrow = el.querySelector('.summary-cat-arrow');
+  subitems.classList.toggle('open');
+  arrow.classList.toggle('expanded');
+}
+
+/* ==============================================================
+   BOTTOM SHEET — Slide up 300ms
+   ============================================================== */
+function openSheet() {
+  document.getElementById('sheetOverlay').classList.add('active');
+  document.getElementById('bottomSheet').classList.add('active');
+  // Reset form
+  document.getElementById('expenseAmount').value = '';
+  document.getElementById('expenseNote').value = '';
+  var now = new Date();
+  document.getElementById('expenseDate').value = formatDateFull(now.toISOString());
+}
+
+function closeSheet() {
+  document.getElementById('sheetOverlay').classList.remove('active');
+  document.getElementById('bottomSheet').classList.remove('active');
+}
+
+function openContractSheet() {
+  document.getElementById('contractSheetOverlay').classList.add('active');
+  document.getElementById('contractBottomSheet').classList.add('active');
+  document.getElementById('contractAmount').value = '';
+  document.getElementById('contractNote').value = '';
+  var now = new Date();
+  document.getElementById('contractDate').value = formatDateFull(now.toISOString());
+}
+
+function closeContractSheet() {
+  document.getElementById('contractSheetOverlay').classList.remove('active');
+  document.getElementById('contractBottomSheet').classList.remove('active');
+}
+
+/* ==============================================================
+   FORM TOGGLE — Category selection
+   ============================================================== */
+function toggleFormBtn(btn) {
+  var parent = btn.parentElement;
+  parent.querySelectorAll('.form-toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+/* ==============================================================
+   SAVE EXPENSE — Supabase insert
+   ============================================================== */
+function saveExpense() {
+  var amount = parseFloat(document.getElementById('expenseAmount').value);
+  if (!amount || amount <= 0) {
+    showToast('请输入有效金额');
+    return;
+  }
+
+  // Get selected category
+  var catBtn = document.querySelector('#categoryToggle .form-toggle-btn.active');
+  var category = catBtn ? catBtn.getAttribute('data-cat') : '硬装';
+
+  // Get selected subcategory
+  var subContainer = document.getElementById('subcategoryToggle');
+  var subBtn = subContainer.querySelector('.form-toggle-btn.active');
+  var subInput = document.getElementById('subcategoryInput');
+  var sub_category = '';
+  if (subBtn) {
+    sub_category = subBtn.getAttribute('data-sub') || '';
+  } else if (subInput) {
+    sub_category = subInput.value.trim();
+  }
+
+  // Get selected source
+  var sourceBtn = document.querySelector('.form-row .form-toggle .form-toggle-btn.active');
+  var source = sourceBtn ? sourceBtn.getAttribute('data-source') : '线下';
+
+  var date = document.getElementById('expenseDate').value;
+  var note = document.getElementById('expenseNote').value.trim();
+
+  var data = {
+    user_id: getUserId(),
+    amount: amount,
+    category: category,
+    sub_category: sub_category,
+    source: source,
+    date: date || new Date().toISOString().substring(0, 10),
+    note: note,
+    item_name: note || sub_category || category
+  };
+
+  closeSheet();
+
+  addExpense(data).then(function() {
+    showToast('已保存');
+    return loadAllData();
+  }).then(function() {
+    renderAll();
+  }).catch(function(err) {
+    showToast('网络错误，请重试');
+    console.error(err);
+  });
+}
+
+/* ==============================================================
+   SAVE CONTRACT — Supabase insert
+   ============================================================== */
+function saveContract() {
+  var amount = parseFloat(document.getElementById('contractAmount').value);
+  if (!amount || amount <= 0) {
+    showToast('请输入有效金额');
+    return;
+  }
+
+  var typeBtn = document.querySelector('#contractBottomSheet .form-toggle .form-toggle-btn.active');
+  var type = typeBtn ? typeBtn.getAttribute('data-ctype') : '合同款';
+
+  var note = document.getElementById('contractNote').value.trim();
+  var date = document.getElementById('contractDate').value;
+
+  var data = {
+    user_id: getUserId(),
+    amount: amount,
+    type: type,
+    note: note,
+    date: date || new Date().toISOString().substring(0, 10),
+    status: type === '待付' ? '待付' : '已付'
+  };
+
+  closeContractSheet();
+
+  addContract(data).then(function() {
+    showToast('款项已保存');
+    return loadContracts();
+  }).then(function() {
+    renderContracts();
+  }).catch(function(err) {
+    showToast('网络错误，请重试');
+    console.error(err);
+  });
+}
+
+/* ==============================================================
+   SUB-PAGES — Slide in from right 250ms
+   ============================================================== */
+function openCategoryDetail(catName) {
+  var expenses = appData.expenses.filter(function(e) { return e.category === catName; });
+  var total = expenses.reduce(function(sum, e) { return sum + (Number(e.amount) || 0); }, 0);
+
+  document.getElementById('catDetailTitle').textContent = catName + '明细';
+  document.getElementById('catDetailAmount').textContent = formatMoney(total);
+  document.getElementById('catDetailCount').textContent = '共 ' + expenses.length + ' 笔支出';
+
+  // Budget for this category
+  var budget = 0;
+  if (catName === '硬装' && appData.budget) budget = Number(appData.budget.hard_budget) || 0;
+  else if (catName === '软装' && appData.budget) budget = Number(appData.budget.soft_budget) || 0;
+  else if (catName === '人工' && appData.budget) budget = Number(appData.budget.labor_budget) || 0;
+  else if (catName === '设计' && appData.budget) budget = Number(appData.budget.design_budget) || 0;
+
+  document.getElementById('catBudgetText').textContent = formatMoney(budget);
+  var pct = budget > 0 ? Math.min((total / budget) * 100, 100) : 0;
+  document.getElementById('catBudgetFill').style.setProperty('--progress', pct.toFixed(1) + '%');
+
+  var list = document.getElementById('catDetailList');
+  var html = '';
+  expenses.forEach(function(e) {
+    html += '<div class="cat-detail-row">' +
+      '<div><span class="cat-detail-name">' + escHtml(e.item_name || e.sub_category || '支出') + '</span>' +
+      '<span class="source-pill" style="margin-left:8px;">' + escHtml(e.source || '') + '</span></div>' +
+      '<span class="cat-detail-amount">+' + formatMoney(e.amount) + '</span>' +
+    '</div>';
+  });
+  list.innerHTML = html || '<div class="empty-state" style="padding:20px;">暂无记录</div>';
+
+  document.getElementById('subCategoryDetail').classList.add('active');
+  requestAnimationFrame(function() {
+    document.getElementById('catBudgetFill').classList.add('animated');
+  });
+}
+
+/* ==============================================================
+   REMINDER DETAIL
+   ============================================================== */
+function openReminderDetail(id) {
+  var r = appData.reminders.find(function(x) { return x.id === id; });
+  if (!r) return;
+
+  var iconClass = r.priority === '紧急' ? 'red' : (r.priority === '重要' ? 'amber' : 'teal');
+  var strokeColor = r.priority === '紧急' ? '#DC2626' : (r.priority === '重要' ? '#D97706' : '#059669');
+  var deadlineStr = r.deadline ? '截止 ' + formatDate(r.deadline) : '';
+
+  document.getElementById('reminderDetailContent').innerHTML =
+    '<div class="reminder-detail-title">' + escHtml(r.title) + '</div>' +
+    '<div class="reminder-detail-desc">' + escHtml(r.description || '') + '</div>' +
+    '<div class="reminder-detail-row">' +
+      '<div class="reminder-detail-icon ' + iconClass + '">' +
+        '<svg width="16" height="16" fill="none" stroke="' + strokeColor + '" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 9.5v.5"/></svg>' +
+      '</div>' +
+      '<span style="color: var(--fg); font-weight: 600;">' + deadlineStr + '</span>' +
+    '</div>' +
+    '<div class="reminder-detail-row">' +
+      '<div class="reminder-detail-icon blue">' +
+        '<svg width="16" height="16" fill="none" stroke="#1664ff" stroke-width="2"><rect x="3" y="3" width="10" height="10" rx="2"/></svg>' +
+      '</div>' +
+      '<span style="color: var(--fg); font-weight: 600;">' + escHtml(r.category || '未分类') + '</span>' +
+    '</div>' +
+    '<div class="reminder-detail-row">' +
+      '<div class="reminder-detail-icon gray">' +
+        '<svg width="16" height="16" fill="none" stroke="#7f8d9f" stroke-width="2"><path d="M12 3H6a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h6l4 3V6a3 3 0 0 0-3-3z"/></svg>' +
+      '</div>' +
+      '<span style="color: var(--muted); font-weight: 600;">优先级: ' + escHtml(r.priority) + '</span>' +
+    '</div>' +
+    '<div class="reminder-detail-actions">' +
+      '<button class="btn-teal" onclick="markCompleteById(\'' + r.id + '\')">标记完成</button>' +
+      '<button class="btn-red-outline" onclick="deleteReminderById(\'' + r.id + '\')">删除</button>' +
+    '</div>';
+
+  document.getElementById('subReminderDetail').classList.add('active');
+}
+
+function markCompleteById(id) {
+  completeReminder(id).then(function() {
+    closeSubPage('subReminderDetail');
+    showToast('已标记为完成');
+    return loadReminders();
+  }).catch(function() {
+    showToast('网络错误，请重试');
+  });
+}
+
+function deleteReminderById(id) {
+  closeSubPage('subReminderDetail');
+  deleteReminderDb(id).then(function() {
+    showToast('已删除提醒');
+    return loadReminders();
+  }).catch(function() {
+    showToast('网络错误，请重试');
+  });
+}
+
+function confirmDeleteReminder(id, index) {
+  hideDeleteConfirm(index);
+  deleteReminderDb(id).then(function() {
+    showToast('已删除提醒');
+    return loadReminders();
+  }).catch(function() {
+    showToast('网络错误，请重试');
+  });
+}
+
+function hideDeleteConfirm(index) {
+  var el = document.getElementById('deleteConfirm' + index);
+  if (el) el.classList.remove('show');
+}
+
+/* ==============================================================
+   REMINDER HISTORY
+   ============================================================== */
+function openReminderHistory() {
+  renderReminderHistory();
+  document.getElementById('subReminderHistory').classList.add('active');
+}
+
+/* ==============================================================
+   BUDGET SETTINGS
+   ============================================================== */
+function openBudgetSettings() {
+  if (appData.budget) {
+    document.getElementById('budgetTotalInput').value = appData.budget.total_budget || 200000;
+    document.getElementById('budgetHardInput').value = appData.budget.hard_budget || 120000;
+    document.getElementById('budgetSoftInput').value = appData.budget.soft_budget || 80000;
+    document.getElementById('budgetLaborInput').value = appData.budget.labor_budget || 20000;
+    document.getElementById('budgetDesignInput').value = appData.budget.design_budget || 10000;
+  }
+  checkBudget(document.getElementById('budgetTotalInput'));
+  document.getElementById('subBudgetSettings').classList.add('active');
+}
+
+function checkBudget(input) {
+  var val = parseInt(input.value) || 0;
+  var total = appData.expenses.reduce(function(sum, e) { return sum + (Number(e.amount) || 0); }, 0);
+  document.getElementById('budgetWarning').style.display = val < total ? 'flex' : 'none';
+  input.classList.toggle('over-budget', val < total);
+}
+
+function saveBudget() {
+  var data = {
+    total_budget: parseInt(document.getElementById('budgetTotalInput').value) || 200000,
+    hard_budget: parseInt(document.getElementById('budgetHardInput').value) || 120000,
+    soft_budget: parseInt(document.getElementById('budgetSoftInput').value) || 80000,
+    labor_budget: parseInt(document.getElementById('budgetLaborInput').value) || 20000,
+    design_budget: parseInt(document.getElementById('budgetDesignInput').value) || 10000
+  };
+
+  updateFullBudget(data).then(function() {
+    closeSubPage('subBudgetSettings');
+    showToast('预算设置已保存');
+    return loadBudget();
+  }).then(function() {
+    renderHomeHero();
+  }).catch(function() {
+    showToast('网络错误，请重试');
+  });
+}
+
+function closeSubPage(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+/* ==============================================================
+   INIT — Auth state check
+   ============================================================== */
+sb.auth.getSession().then(function(result) {
+  var session = result.data.session;
+  if (session) {
+    currentUser = session.user;
+    // Show user email in header
+    document.getElementById('headerEmail').textContent = currentUser.email;
+    showApp();
+    loadAllData();
+  } else {
+    showLogin();
+  }
+});
+
+sb.auth.onAuthStateChange(function(event, session) {
+  if (session) {
+    currentUser = session.user;
+    document.getElementById('headerEmail').textContent = currentUser.email;
+    showApp();
+    loadAllData();
+  } else {
+    currentUser = null;
+    appData = { expenses: [], categories: [], contracts: [], reminders: [], completedReminders: [], cycles: [], budget: null };
+    showLogin();
+    if (realtimeChannel) {
+      sb.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+  }
+});
+</script>
+</body>
+</html>
