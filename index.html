@@ -1970,7 +1970,10 @@ function handleRegister() {
     .then(function(result) {
       if (result.error) throw result.error;
       errorEl.textContent = '';
-      if (result.data.user && !result.data.session) {
+      if (result.data.session) {
+        // 邮箱验证关闭时，直接自动登录
+        // onAuthStateChange will handle showApp
+      } else {
         errorEl.style.color = '#059669';
         errorEl.textContent = '注册成功！请查收邮箱确认链接后登录。';
         document.getElementById('registerBtn').textContent = '注册';
