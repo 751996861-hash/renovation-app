@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>装修记账</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -17,6 +17,7 @@ body {
   color: #0e1115;
   line-height: 1.5;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
 }
@@ -51,8 +52,10 @@ body {
    APP SHELL — Gradient Background
    ============================================================ */
 #app {
-  width: 390px;
+  max-width: 430px;
+  width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   background: linear-gradient(180deg,
     #0B1120 0%,
@@ -161,8 +164,10 @@ body {
   justify-content: center;
 }
 #loginPage .login-bg {
-  width: 390px;
+  max-width: 430px;
+  width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(180deg,
     #0B1120 0%,
     #0F172A 10%,
@@ -180,17 +185,19 @@ body {
 }
 .login-logo {
   margin-top: 120px;
-  margin-bottom: 12px;
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(10px);
+  margin-bottom: 16px;
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(96,165,250,0.15), rgba(22,100,255,0.1));
+  backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 8px 32px rgba(22,100,255,0.15);
 }
-.login-logo svg { width: 36px; height: 36px; }
+.login-logo svg { width: 40px; height: 40px; }
 .login-title {
   font-size: 28px;
   font-weight: 800;
@@ -317,7 +324,8 @@ body {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 390px;
+  max-width: 430px;
+  width: 100%;
   background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.3) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -325,6 +333,7 @@ body {
   justify-content: space-around;
   align-items: flex-start;
   padding: 8px 0 28px;
+  padding-bottom: calc(28px + env(safe-area-inset-bottom));
   z-index: 100;
 }
 .tab-item {
@@ -608,7 +617,7 @@ body {
 .fab {
   position: fixed;
   bottom: 100px;
-  right: calc(50% - 195px + 20px);
+  right: max(20px, calc(50% - 215px + 20px));
   background: #ffffff;
   color: var(--primary);
   border: 1.5px solid var(--primary);
@@ -757,7 +766,8 @@ body {
   inset: 0;
   z-index: 150;
   background: linear-gradient(180deg, #FAFBFD 0%, #FFFFFF 30%);
-  width: 390px;
+  max-width: 430px;
+  width: 100%;
   left: 50%;
   transform: translateX(-50%);
   overflow-y: auto;
@@ -1225,7 +1235,8 @@ body {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%) translateY(100%);
-  width: 390px;
+  max-width: 430px;
+  width: 100%;
   background: #FFFFFF;
   border-radius: 24px 24px 0 0;
   border-top: 1px solid rgba(0,0,0,0.06);
@@ -1420,9 +1431,17 @@ body {
 <div id="loginPage">
   <div class="login-bg">
     <div class="login-logo">
-      <svg width="36" height="36" fill="none" stroke="#F8FAFC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1z"/>
-        <path d="M9 21V14h6v7"/>
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <defs>
+          <linearGradient id="logoGrad" x1="0" y1="0" x2="36" y2="36">
+            <stop offset="0%" stop-color="#60A5FA"/>
+            <stop offset="100%" stop-color="#1664ff"/>
+          </linearGradient>
+        </defs>
+        <rect x="2" y="6" width="32" height="24" rx="6" fill="url(#logoGrad)" opacity="0.9"/>
+        <path d="M8 18L13 14L18 17L23 11L28 15" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="25" cy="10" r="4" fill="#34D399"/>
+        <path d="M23.5 10L24.5 11.5L26.5 8.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
     <div class="login-title">装修记账</div>
@@ -1456,10 +1475,6 @@ body {
       <div class="header-left">
         <div class="header-title">装修记账</div>
         <div class="header-date" id="headerDate"></div>
-      </div>
-      <div class="header-right">
-        <span class="header-email" id="headerEmail"></span>
-        <button class="btn-logout" onclick="handleLogout()">退出</button>
       </div>
     </div>
   </header>
@@ -1933,6 +1948,7 @@ function handleLogin() {
   var password = document.getElementById('loginPassword').value;
   var errorEl = document.getElementById('loginError');
   errorEl.textContent = '';
+  errorEl.style.color = '#DC2626';
 
   if (!email || !password) {
     errorEl.textContent = '请填写邮箱和密码';
@@ -1941,11 +1957,21 @@ function handleLogin() {
 
   document.getElementById('loginBtn').textContent = '登录中...';
   sb.auth.signInWithPassword({ email: email, password: password })
-    .then(function() {
-      // onAuthStateChange will handle the rest
+    .then(function(result) {
+      if (result.error) {
+        var msg = result.error.message || '登录失败';
+        if (typeof msg === 'object') msg = JSON.stringify(msg);
+        if (!msg || msg === '{}') msg = '邮箱或密码错误';
+        throw new Error(msg);
+      }
+      // onAuthStateChange will handle showApp
     })
     .catch(function(err) {
-      errorEl.textContent = err.message || '登录失败，请重试';
+      var msg = err.message || '登录失败，请重试';
+      if (msg === '{}' || msg === 'undefined' || msg === '[object Object]') {
+        msg = '邮箱或密码错误';
+      }
+      errorEl.textContent = msg;
       document.getElementById('loginBtn').textContent = '登录';
     });
 }
@@ -3095,8 +3121,6 @@ sb.auth.getSession().then(function(result) {
   var session = result.data.session;
   if (session) {
     currentUser = session.user;
-    // Show user email in header
-    document.getElementById('headerEmail').textContent = currentUser.email;
     showApp();
     loadAllData();
   } else {
@@ -3107,7 +3131,6 @@ sb.auth.getSession().then(function(result) {
 sb.auth.onAuthStateChange(function(event, session) {
   if (session) {
     currentUser = session.user;
-    document.getElementById('headerEmail').textContent = currentUser.email;
     showApp();
     loadAllData();
   } else {
