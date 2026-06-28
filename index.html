@@ -1955,6 +1955,7 @@ function handleRegister() {
   var password = document.getElementById('loginPassword').value;
   var errorEl = document.getElementById('loginError');
   errorEl.textContent = '';
+  errorEl.style.color = '#DC2626';
 
   if (!email || !password) {
     errorEl.textContent = '请填写邮箱和密码';
@@ -1968,11 +1969,16 @@ function handleRegister() {
   document.getElementById('registerBtn').textContent = '注册中...';
   sb.auth.signUp({ email: email, password: password })
     .then(function(result) {
-      if (result.error) throw result.error;
+      if (result.error) {
+        var msg = result.error.message || '注册失败';
+        if (typeof msg === 'object') msg = JSON.stringify(msg);
+        throw new Error(msg);
+      }
       errorEl.textContent = '';
       if (result.data.session) {
         // 邮箱验证关闭时，直接自动登录
         // onAuthStateChange will handle showApp
+        initDefaultData();
       } else {
         errorEl.style.color = '#059669';
         errorEl.textContent = '注册成功！请查收邮箱确认链接后登录。';
@@ -1981,7 +1987,11 @@ function handleRegister() {
     })
     .catch(function(err) {
       errorEl.style.color = '#DC2626';
-      errorEl.textContent = err.message || '注册失败，请重试';
+      var msg = err.message || '注册失败，请重试';
+      if (msg === '{}' || msg === 'undefined' || msg === '[object Object]') {
+        msg = '注册失败，请稍后重试（数据库配置错误）';
+      }
+      errorEl.textContent = msg;
       document.getElementById('registerBtn').textContent = '注册';
     });
 }
@@ -2022,6 +2032,67 @@ function showApp() {
 /* ==============================================================
    DATA LOADING
    ============================================================== */
+/* ==============================================================
+   INIT DEFAULT DATA — Create categories/cycles if first login
+   ============================================================== */
+function initDefaultData() {
+  var userId = getUserId();
+  if (!userId) return;
+
+  // Check if categories already exist
+  sb.from('categories').select('id').eq('user_id', userId).limit(1)
+    .then(function(result) {
+      if (result.data && result.data.length > 0) return; // Already initialized
+      // Insert default categories
+      return sb.from('categories').insert([
+        { user_id: userId, name: '硬装', budget: 120000, icon_color: '#34D399', sort_order: 0 },
+        { user_id: userId, name: '软装', budget: 80000, icon_color: '#60A5FA', sort_order: 1 },
+        { user_id: userId, name: '人工', budget: 0, icon_color: '#FBBF24', sort_order: 2 },
+        { user_id: userId, name: '设计', budget: 0, icon_color: '#A78BFA', sort_order: 3 }
+      ]).then(function(catResult) {
+        var cats = catResult.data || [];
+        var subItems = [
+          { catIdx: 0, subs: ['瓷砖','水电','防水','瓦工','油漆','其他硬装'] },
+          { catIdx: 1, subs: ['家具','灯具','窗帘','家电','其他软装'] },
+          { catIdx: 2, subs: ['施工人工'] },
+          { catIdx: 3, subs: ['设计费'] }
+        ];
+        var inserts = [];
+        cats.forEach(function(cat, ci) {
+          if (subItems[ci]) {
+            subItems[ci].subs.forEach(function(sub, si) {
+              inserts.push({ user_id: userId, category_id: cat.id, name: sub, sort_order: si });
+            });
+          }
+        });
+        if (inserts.length > 0) {
+          return sb.from('sub_categories').insert(inserts);
+        }
+      });
+    }).then(function() {
+      // Insert default cycles
+      return sb.from('cycles').select('id').eq('user_id', userId).limit(1);
+    }).then(function(result) {
+      if (result.data && result.data.length > 0) return;
+      return sb.from('cycles').insert([
+        { user_id: userId, name: '主体改造期', budget: 20000, spent: 0, status: '未开始', sort_order: 0 },
+        { user_id: userId, name: '水电施工期', budget: 15000, spent: 0, status: '未开始', sort_order: 1 },
+        { user_id: userId, name: '泥木工程期', budget: 25000, spent: 0, status: '未开始', sort_order: 2 },
+        { user_id: userId, name: '油漆涂料期', budget: 10000, spent: 0, status: '未开始', sort_order: 3 },
+        { user_id: userId, name: '安装工程期', budget: 15000, spent: 0, status: '未开始', sort_order: 4 },
+        { user_id: userId, name: '软装采购期', budget: 30000, spent: 0, status: '未开始', sort_order: 5 }
+      ]);
+    }).then(function() {
+      // Insert default budget
+      return sb.from('budget_settings').select('id').eq('user_id', userId).limit(1);
+    }).then(function(result) {
+      if (result.data && result.data.length > 0) return;
+      return sb.from('budget_settings').insert({ user_id: userId, total_budget: 200000 });
+    }).catch(function(err) {
+      console.error('Init default data error:', err);
+    });
+}
+
 function loadAllData() {
   var userId = getUserId();
   if (!userId) return;
