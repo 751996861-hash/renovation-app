@@ -10,7 +10,14 @@
    RESET & BASE
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  overflow-y: auto;
+  overscroll-behavior: none;
+}
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
   background: #0e1115;
@@ -20,6 +27,8 @@ body {
   min-height: 100dvh;
   display: flex;
   justify-content: center;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
 }
 
 /* ============================================================
@@ -81,7 +90,10 @@ body {
     #FFFFFF 100%
   );
   overflow-x: hidden;
-  padding-bottom: 90px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ============================================================
@@ -100,7 +112,7 @@ body {
    HEADER
    ============================================================ */
 .app-header {
-  padding: 56px 20px 20px;
+  padding: calc(52px + env(safe-area-inset-top, 0px)) 20px 20px;
   position: relative;
   overflow: hidden;
 }
@@ -616,13 +628,14 @@ body {
    ============================================================ */
 .fab {
   position: fixed;
-  bottom: 100px;
-  right: max(20px, calc(50% - 215px + 20px));
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
   background: #ffffff;
   color: var(--primary);
   border: 1.5px solid var(--primary);
   border-radius: 28px;
-  padding: 12px 24px;
+  padding: 12px 28px;
   font-family: inherit;
   font-size: 15px;
   font-weight: 700;
@@ -633,8 +646,9 @@ body {
   align-items: center;
   gap: 6px;
   transition: transform 0.15s;
+  white-space: nowrap;
 }
-.fab:active { transform: scale(0.96); }
+.fab:active { transform: translateX(-50%) scale(0.96); }
 .fab.hidden { display: none; }
 
 /* ============================================================
@@ -646,7 +660,8 @@ body {
   border-radius: var(--radius-xs);
   padding: 3px;
   margin: -8px auto 16px;
-  width: 350px;
+  width: 100%;
+  max-width: 350px;
 }
 .segment-btn {
   flex: 1;
@@ -771,7 +786,8 @@ body {
   left: 50%;
   transform: translateX(-50%);
   overflow-y: auto;
-  padding-bottom: 40px;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
 }
 .sub-page.active {
   display: block;
@@ -785,7 +801,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 20px 16px;
   background: rgba(255,255,255,0.85);
   backdrop-filter: var(--frosted-blur);
   -webkit-backdrop-filter: var(--frosted-blur);
@@ -1241,10 +1257,12 @@ body {
   border-radius: 24px 24px 0 0;
   border-top: 1px solid rgba(0,0,0,0.06);
   z-index: 201;
-  padding: 12px 20px 32px;
+  padding: 12px 20px calc(32px + env(safe-area-inset-bottom, 0px));
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   max-height: 85vh;
+  max-height: 85dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .bottom-sheet.active { transform: translateX(-50%) translateY(0); }
 .sheet-handle {
@@ -1294,24 +1312,32 @@ body {
   padding: 3px;
   border: 1px solid #E7EAEF;
   flex-wrap: wrap;
+  gap: 2px;
 }
 .form-toggle-btn {
   flex: 1;
-  padding: 10px;
+  min-width: 0;
+  padding: 9px 6px;
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #7f8d9f;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  min-width: 0;
+  white-space: nowrap;
 }
 .form-toggle-btn.active { background: var(--primary); color: #FFFFFF; }
-.form-row { display: flex; gap: 12px; }
-.form-row .form-group { flex: 1; }
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+.form-row .form-group { flex: 1; min-width: 0; }
+@media (max-width: 360px) {
+  .form-row { flex-direction: column; gap: 0; }
+}
 .btn-sheet-primary {
   width: 100%;
   padding: 16px;
