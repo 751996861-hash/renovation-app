@@ -629,13 +629,12 @@ body {
 .fab {
   position: fixed;
   bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 12px);
-  left: 50%;
-  transform: translateX(-50%);
+  right: max(20px, calc(50% - 215px + 20px));
   background: #ffffff;
   color: var(--primary);
   border: 1.5px solid var(--primary);
   border-radius: 28px;
-  padding: 12px 28px;
+  padding: 12px 24px;
   font-family: inherit;
   font-size: 15px;
   font-weight: 700;
@@ -648,7 +647,7 @@ body {
   transition: transform 0.15s;
   white-space: nowrap;
 }
-.fab:active { transform: translateX(-50%) scale(0.96); }
+.fab:active { transform: scale(0.96); }
 .fab.hidden { display: none; }
 
 /* ============================================================
@@ -1423,6 +1422,30 @@ body {
 .history-btn:active { background: rgba(0,0,0,0.03); }
 
 /* ============================================================
+   COLOR PICKER
+   ============================================================ */
+.color-picker-row {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+}
+.color-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+  padding: 0;
+}
+.color-dot.active {
+  border-color: var(--fg);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
+}
+.color-dot:active { transform: scale(0.92); }
+
+/* ============================================================
    BUDGET TAG
    ============================================================ */
 .tag-white-success {
@@ -1554,7 +1577,10 @@ body {
     <div class="section" style="margin-top: 8px;">
       <div class="light-label" style="padding: 0 0 10px;">
         <span>待办提醒</span>
-        <button class="history-btn" onclick="openReminderHistory()">历史</button>
+        <div style="display:flex;gap:6px;">
+          <button class="history-btn" onclick="openReminderSheet()">添加</button>
+          <button class="history-btn" onclick="openReminderHistory()">历史</button>
+        </div>
       </div>
       <div class="reminder-card-list" id="reminderList">
         <!-- Rendered by JS -->
@@ -1644,26 +1670,6 @@ body {
   </div>
 
   <!-- ============================================================
-       TAB 4: CYCLES — 周期
-       ============================================================ -->
-  <div id="tab-cycles" class="tab-panel">
-    <div class="section" style="margin-top: 12px;">
-      <div class="cycle-tag-label">装修阶段</div>
-      <div class="cycle-scroll" id="cycleScroll">
-        <!-- Rendered by JS -->
-      </div>
-    </div>
-
-    <!-- Overview Section -->
-    <div class="section" style="margin-top: 8px;">
-      <div class="cycle-tag-label">阶段概览</div>
-      <div class="card" style="padding: 20px;" id="cycleOverview">
-        <!-- Rendered by JS -->
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================================
        BOTTOM TAB BAR — SVG inline icons
        ============================================================ -->
   <nav class="tab-bar">
@@ -1678,10 +1684,6 @@ body {
     <button class="tab-item" onclick="switchTab('contract', this)">
       <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
       合同
-    </button>
-    <button class="tab-item" onclick="switchTab('cycles', this)">
-      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-      周期
     </button>
   </nav>
 
@@ -1757,6 +1759,36 @@ body {
       <input type="date" class="form-input" id="contractDate">
     </div>
     <button class="btn-sheet-primary" onclick="saveContract()">保存</button>
+  </div>
+
+  <!-- ============================================================
+       BOTTOM SHEET — Add Reminder
+       ============================================================ -->
+  <div class="sheet-overlay" id="reminderSheetOverlay" onclick="closeReminderSheet()"></div>
+  <div class="bottom-sheet" id="reminderSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">添加待办</div>
+    <div class="form-group">
+      <label class="form-label">事项</label>
+      <input type="text" class="form-input" id="reminderTitle" placeholder="输入待办事项">
+    </div>
+    <div class="form-group">
+      <label class="form-label">时间</label>
+      <input type="date" class="form-input" id="reminderDeadline">
+    </div>
+    <div class="form-group">
+      <label class="form-label">颜色</label>
+      <div class="color-picker-row" id="colorPicker">
+        <button class="color-dot active" data-color="#EF4444" style="background:#EF4444;" onclick="pickColor(this)"></button>
+        <button class="color-dot" data-color="#F59E0B" style="background:#F59E0B;" onclick="pickColor(this)"></button>
+        <button class="color-dot" data-color="#10B981" style="background:#10B981;" onclick="pickColor(this)"></button>
+        <button class="color-dot" data-color="#3B82F6" style="background:#3B82F6;" onclick="pickColor(this)"></button>
+        <button class="color-dot" data-color="#8B5CF6" style="background:#8B5CF6;" onclick="pickColor(this)"></button>
+        <button class="color-dot" data-color="#EC4899" style="background:#EC4899;" onclick="pickColor(this)"></button>
+        <button class="color-dot" data-color="#6B7280" style="background:#6B7280;" onclick="pickColor(this)"></button>
+      </div>
+    </div>
+    <button class="btn-sheet-primary" onclick="saveReminder()">保存</button>
   </div>
 
   <!-- ============================================================
@@ -1890,7 +1922,6 @@ var appData = {
   contracts: [],
   reminders: [],
   completedReminders: [],
-  cycles: [],
   budget: null
 };
 
@@ -2122,19 +2153,6 @@ function initDefaultData() {
         }
       });
     }).then(function() {
-      // Insert default cycles
-      return sb.from('cycles').select('id').eq('user_id', userId).limit(1);
-    }).then(function(result) {
-      if (result.data && result.data.length > 0) return;
-      return sb.from('cycles').insert([
-        { user_id: userId, name: '主体改造期', budget: 20000, spent: 0, status: '未开始', sort_order: 0 },
-        { user_id: userId, name: '水电施工期', budget: 15000, spent: 0, status: '未开始', sort_order: 1 },
-        { user_id: userId, name: '泥木工程期', budget: 25000, spent: 0, status: '未开始', sort_order: 2 },
-        { user_id: userId, name: '油漆涂料期', budget: 10000, spent: 0, status: '未开始', sort_order: 3 },
-        { user_id: userId, name: '安装工程期', budget: 15000, spent: 0, status: '未开始', sort_order: 4 },
-        { user_id: userId, name: '软装采购期', budget: 30000, spent: 0, status: '未开始', sort_order: 5 }
-      ]);
-    }).then(function() {
       // Insert default budget
       return sb.from('budget_settings').select('id').eq('user_id', userId).limit(1);
     }).then(function(result) {
@@ -2156,7 +2174,6 @@ function loadAllData() {
     loadCategories(),
     loadContracts(),
     loadReminders(),
-    loadCycles(),
     loadBudget()
   ]).then(function() {
     document.getElementById('loadingOverlay').style.display = 'none';
@@ -2208,14 +2225,6 @@ function loadReminders() {
     renderReminders();
     renderReminderHistory();
   });
-}
-
-function loadCycles() {
-  return sb.from('cycles').select('*').eq('user_id', getUserId()).order('sort_order', { ascending: true })
-    .then(function(result) {
-      if (result.error) throw result.error;
-      appData.cycles = result.data || [];
-    });
 }
 
 function loadBudget() {
@@ -2285,13 +2294,6 @@ function deleteReminderDb(id) {
   });
 }
 
-function updateCycleStatus(id, status) {
-  return sb.from('cycles').update({ status: status }).eq('id', id).then(function(result) {
-    if (result.error) throw result.error;
-    return result;
-  });
-}
-
 function updateBudget(amount) {
   return sb.from('budget_settings').upsert({ user_id: getUserId(), total_budget: amount }, { onConflict: 'user_id' })
     .then(function(result) {
@@ -2329,9 +2331,6 @@ function subscribeRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, function() {
       loadContracts().then(function() { renderContracts(); });
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'cycles' }, function() {
-      loadCycles().then(function() { renderCycles(); });
-    })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'budget_settings' }, function() {
       loadBudget().then(function() { renderHomeHero(); });
     })
@@ -2348,7 +2347,6 @@ function renderAll() {
   renderSummary();
   renderFlow();
   renderContracts();
-  renderCycles();
 }
 
 /* ==============================================================
@@ -2407,8 +2405,9 @@ function renderReminders() {
     var pClass = r.priority === '紧急' ? 'priority-urgent' : (r.priority === '重要' ? 'priority-important' : 'priority-normal');
     var tagClass = r.priority === '紧急' ? 'tag-urgent' : (r.priority === '重要' ? 'tag-important' : 'tag-normal');
     var deadlineStr = r.deadline ? '截止 ' + formatDate(r.deadline) : '';
+    var borderColor = r.color || (r.priority === '紧急' ? 'var(--danger)' : r.priority === '重要' ? 'var(--warning)' : 'var(--success)');
 
-    html += '<div class="reminder-card-item card card-animate ' + pClass + '" onclick="openReminderDetail(\'' + r.id + '\')">' +
+    html += '<div class="reminder-card-item card card-animate" style="border-left-color:' + borderColor + ';" onclick="openReminderDetail(\'' + r.id + '\')">' +
       '<div class="reminder-card-top">' +
         '<div class="reminder-card-title">' + escHtml(r.title) + '</div>' +
         '<span class="tag ' + tagClass + '">' + escHtml(r.priority) + '</span>' +
@@ -2652,79 +2651,6 @@ function renderContracts() {
 }
 
 /* ==============================================================
-   RENDER: Cycles
-   ============================================================== */
-function renderCycles() {
-  var cycles = appData.cycles;
-  var scrollContainer = document.getElementById('cycleScroll');
-
-  if (cycles.length === 0) {
-    scrollContainer.innerHTML = '<div class="empty-state" style="padding:30px 20px;">暂无周期数据</div>';
-    return;
-  }
-
-  var scrollHtml = '';
-  var completedCount = 0;
-  var totalBudget = 0, totalUsed = 0;
-
-  cycles.forEach(function(c) {
-    var budget = Number(c.budget) || 0;
-    var used = Number(c.used) || 0;
-    totalBudget += budget;
-    totalUsed += used;
-    var pct = budget > 0 ? Math.min((used / budget) * 100, 100) : 0;
-    var statusTag = '';
-    if (c.status === '已完成') { statusTag = '<span class="tag-wc tag-wc-green">已完成</span>'; completedCount++; }
-    else if (c.status === '进行中') { statusTag = '<span class="tag-wc tag-wc-green">进行中</span>'; }
-    else { statusTag = '<span class="tag-wc tag-wc-gray">未开始</span>'; }
-
-    scrollHtml += '<div class="cycle-card card card-animate">' +
-      '<div class="cycle-name">' + escHtml(c.name) + '</div>' +
-      statusTag +
-      '<div class="cycle-progress-track">' +
-        '<div class="cycle-progress-fill" style="--progress: ' + pct.toFixed(1) + '%;"></div>' +
-      '</div>' +
-      '<div class="cycle-budget">' +
-        '<span>预算 ' + formatMoney(budget) + '</span>' +
-        '<span class="cycle-amount">已用 ' + formatMoney(used) + '</span>' +
-      '</div>' +
-    '</div>';
-  });
-
-  scrollContainer.innerHTML = scrollHtml;
-
-  // Overview
-  var overallPct = totalBudget > 0 ? (totalUsed / totalBudget * 100) : 0;
-  var currentCycle = cycles.find(function(c) { return c.status === '进行中'; });
-  var currentName = currentCycle ? currentCycle.name : '-';
-
-  document.getElementById('cycleOverview').innerHTML =
-    '<div style="display: flex; justify-content: space-between; margin-bottom: 16px;">' +
-      '<div>' +
-        '<div style="font-size: 14px; color: var(--muted); margin-bottom: 4px;">已完成阶段</div>' +
-        '<div style="font-size: 20px; font-weight: 800; color: var(--fg);">' + completedCount + ' / ' + cycles.length + '</div>' +
-      '</div>' +
-      '<div style="text-align: right;">' +
-        '<div style="font-size: 14px; color: var(--muted); margin-bottom: 4px;">整体进度</div>' +
-        '<div style="font-size: 20px; font-weight: 800; color: var(--fg);">' + overallPct.toFixed(1) + '%</div>' +
-      '</div>' +
-    '</div>' +
-    '<div style="width: 100%; height: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden;">' +
-      '<div style="width: ' + overallPct.toFixed(1) + '%; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #10B981, #34D399);"></div>' +
-    '</div>' +
-    '<div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px;">' +
-      '<span style="color: var(--muted);">当前: ' + escHtml(currentName) + '</span>' +
-      '<span style="color: #10B981; font-weight: 600;">总预算 ' + formatMoney(totalBudget) + '</span>' +
-    '</div>';
-
-  requestAnimationFrame(function() {
-    document.querySelectorAll('.cycle-progress-fill').forEach(function(el) {
-      el.classList.add('animated');
-    });
-  });
-}
-
-/* ==============================================================
    RENDER: Category Toggle in Sheet (dynamic from DB)
    ============================================================== */
 function renderCategoryToggle() {
@@ -2811,7 +2737,7 @@ function switchTab(tabName, btn) {
 
   // Animate progress bars on tab switch
   requestAnimationFrame(function() {
-    document.querySelectorAll('.hero-progress-fill, .cycle-progress-fill, .dark-progress-fill').forEach(function(el) {
+    document.querySelectorAll('.hero-progress-fill, .dark-progress-fill').forEach(function(el) {
       el.classList.add('animated');
     });
   });
@@ -2867,6 +2793,69 @@ function openContractSheet() {
 function closeContractSheet() {
   document.getElementById('contractSheetOverlay').classList.remove('active');
   document.getElementById('contractBottomSheet').classList.remove('active');
+}
+
+/* ==============================================================
+   REMINDER SHEET — Open / Close / Color Pick / Save
+   ============================================================== */
+var selectedReminderColor = '#EF4444';
+
+function openReminderSheet() {
+  document.getElementById('reminderSheetOverlay').classList.add('active');
+  document.getElementById('reminderSheet').classList.add('active');
+  document.getElementById('reminderTitle').value = '';
+  document.getElementById('reminderDeadline').value = '';
+  // Reset color to first
+  selectedReminderColor = '#EF4444';
+  document.querySelectorAll('#colorPicker .color-dot').forEach(function(d, i) {
+    d.classList.toggle('active', i === 0);
+  });
+}
+
+function closeReminderSheet() {
+  document.getElementById('reminderSheetOverlay').classList.remove('active');
+  document.getElementById('reminderSheet').classList.remove('active');
+}
+
+function pickColor(btn) {
+  document.querySelectorAll('#colorPicker .color-dot').forEach(function(d) { d.classList.remove('active'); });
+  btn.classList.add('active');
+  selectedReminderColor = btn.getAttribute('data-color');
+}
+
+function saveReminder() {
+  var title = document.getElementById('reminderTitle').value.trim();
+  if (!title) {
+    showToast('请输入待办事项');
+    return;
+  }
+  var deadline = document.getElementById('reminderDeadline').value;
+  var priority = '普通';
+  if (selectedReminderColor === '#EF4444') priority = '紧急';
+  else if (selectedReminderColor === '#F59E0B') priority = '重要';
+
+  var data = {
+    user_id: getUserId(),
+    title: title,
+    category: '',
+    description: '',
+    deadline: deadline || null,
+    priority: priority,
+    status: '进行中',
+    color: selectedReminderColor
+  };
+
+  closeReminderSheet();
+
+  addReminder(data).then(function() {
+    showToast('待办已添加');
+    return loadReminders();
+  }).then(function() {
+    renderReminders();
+  }).catch(function(err) {
+    showToast('网络错误，请重试');
+    console.error(err);
+  });
 }
 
 /* ==============================================================
@@ -3161,7 +3150,7 @@ sb.auth.onAuthStateChange(function(event, session) {
     loadAllData();
   } else {
     currentUser = null;
-    appData = { expenses: [], categories: [], contracts: [], reminders: [], completedReminders: [], cycles: [], budget: null };
+    appData = { expenses: [], categories: [], contracts: [], reminders: [], completedReminders: [], budget: null };
     showLogin();
     if (realtimeChannel) {
       sb.removeChannel(realtimeChannel);
