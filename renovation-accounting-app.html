@@ -2161,7 +2161,7 @@ function loadCategories() {
 }
 
 function loadContracts() {
-  return sb.from('contracts').select('*').eq('user_id', getUserId()).order('date', { ascending: false })
+  return sb.from('contracts').select('*').eq('user_id', getUserId()).order('created_at', { ascending: false })
     .then(function(result) {
       if (result.error) throw result.error;
       appData.contracts = result.data || [];
@@ -2185,7 +2185,7 @@ function loadReminders() {
 }
 
 function loadCycles() {
-  return sb.from('cycles').select('*').eq('user_id', getUserId()).order('order_index', { ascending: true })
+  return sb.from('cycles').select('*').eq('user_id', getUserId()).order('sort_order', { ascending: true })
     .then(function(result) {
       if (result.error) throw result.error;
       appData.cycles = result.data || [];
